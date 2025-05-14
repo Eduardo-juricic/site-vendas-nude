@@ -16,7 +16,12 @@ function Products() {
           id: doc.id,
           ...doc.data(),
         }));
-        setProducts(productsList);
+
+        // Filtra os produtos que NÃO possuem a propriedade 'destaque' como true
+        const produtosNormais = productsList.filter(
+          (product) => !product.destaque
+        );
+        setProducts(produtosNormais);
       } catch (err) {
         setError(err);
       } finally {
@@ -45,24 +50,24 @@ function Products() {
           {products.map((product) => (
             <div
               key={product.id}
-              className="bg-white rounded-lg shadow-md overflow-hidden flex flex-col items-center"
+              className="bg-white rounded-lg shadow-md overflow-hidden flex flex-col items-center p-6 mb-4" // Mantivemos o padding e a margem
             >
               <img
                 src={product.imagem} // Use a URL da imagem do Cloudinary
                 alt={product.nome}
-                className="w-full h-64 object-cover rounded-t-lg"
+                className="w-full h-80 object-cover rounded-t-lg" // Voltamos para object-cover e mantivemos h-80
               />
               <div className="p-4 flex flex-col items-center">
-                <h3 className="font-semibold text-gray-700 text-center mb-2">
+                <h3 className="font-semibold text-gray-700 text-center mb-3 text-lg">
                   {product.nome}
                 </h3>
-                <p className="text-gray-600 text-sm text-center mb-3">
+                <p className="text-gray-600 text-sm text-center mb-4">
                   {product.descricao}
                 </p>
-                <p className="text-green-500 font-bold text-xl mb-4">
+                <p className="text-green-500 font-bold text-xl mb-5">
                   R$ {product.preco.toFixed(2)}
                 </p>
-                <button className="bg-pink-500 hover:bg-pink-700 text-white font-bold py-2 px-6 rounded-full focus:outline-none focus:shadow-outline text-sm">
+                <button className="bg-pink-500 hover:bg-pink-700 text-white font-bold py-3 px-8 rounded-full focus:outline-none focus:shadow-outline text-sm">
                   Comprar
                 </button>
               </div>
