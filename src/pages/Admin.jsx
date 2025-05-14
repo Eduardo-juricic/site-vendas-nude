@@ -48,7 +48,7 @@ const Admin = () => {
         console.log("No such document!");
       }
     });
-  }, []);
+  });
 
   const handleFileChange = (e) => {
     // Atualiza o estado do formulário com o arquivo selecionado

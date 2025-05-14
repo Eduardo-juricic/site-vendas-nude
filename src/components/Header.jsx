@@ -14,16 +14,12 @@ function Header() {
   };
 
   return (
-    <header className="bg-white shadow-md sticky top-0 z-50">
-      {/* Barra Superior de Destaque */}
-      <div className="bg-pink-500 text-white text-center py-0.5">
-        <p className="text-xs">Descubra a Beleza que Inspira</p>
-      </div>
-
-      {/* Seção Principal */}
-      <div className="container mx-auto flex items-center justify-between py-1 md:py-2">
+    <header className="bg-white shadow-md sticky top-0 z-50 py-2 md:py-3">
+      <div className="container mx-auto flex items-center justify-between">
         {/* Logo */}
-        <div className="w-20 md:w-24">
+        <div className="w-28 md:w-36">
+          {" "}
+          {/* Aumentei a largura do logo */}
           <img
             src={logo}
             alt="Logo Gisele Carvalho"
@@ -48,58 +44,19 @@ function Header() {
         {/* Ícones de Ação */}
         <div className="hidden md:flex items-center space-x-1 md:space-x-2">
           <a href="#" className="text-pink-500 hover:text-pink-700 text-xs">
-            <ShoppingCartIcon className="h-5 w-5 fill-current" />{" "}
-            {/* Increased size */}
+            <ShoppingCartIcon className="h-5 w-5 fill-current" />
           </a>
         </div>
         {/* Ícone de Carrinho para telas menores */}
         <div className="md:hidden">
           <a href="#" className="text-pink-500 hover:text-pink-700 text-sm">
-            <ShoppingCartIcon className="h-5 w-5 fill-current" />{" "}
-            {/* Increased size */}
+            <ShoppingCartIcon className="h-5 w-5 fill-current" />
           </a>
         </div>
       </div>
-
       {/* Barra de Navegação */}
       <nav className="bg-gray-100 py-0.5 md:py-1 hidden md:block">
         <div className="container mx-auto flex justify-around text-xxs md:text-xs">
-          <a
-            href="#"
-            className="text-gray-700 hover:text-green-500 font-semibold"
-          >
-            Kits
-          </a>
-          <a
-            href="#"
-            className="text-gray-700 hover:text-green-500 font-semibold"
-          >
-            Bath & Body
-          </a>
-          <a
-            href="#"
-            className="text-gray-700 hover:text-green-500 font-semibold"
-          >
-            Body Splash
-          </a>
-          <a
-            href="#"
-            className="text-gray-700 hover:text-green-500 font-semibold"
-          >
-            Perfumaria
-          </a>
-          <a
-            href="#"
-            className="text-gray-700 hover:text-green-500 font-semibold"
-          >
-            Skincare
-          </a>
-          <a
-            href="#"
-            className="text-gray-700 hover:text-green-500 font-semibold"
-          >
-            Body Cream
-          </a>
           <a
             href="#"
             className="text-gray-700 hover:text-green-500 font-semibold"
@@ -138,7 +95,6 @@ function Header() {
           </a>
         </div>
       </nav>
-
       {/* Navegação para telas menores (hambúrguer) */}
       <div className="md:hidden bg-gray-100 py-1 text-center">
         <button
