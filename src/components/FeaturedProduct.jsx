@@ -45,7 +45,7 @@ function FeaturedProduct() {
   }
 
   return (
-    <section className="py-16 bg-pink-50">
+    <section className="py-16 bg-gradient-to-br from-emerald-700 to-emerald-300 md:py-48 text-white text-center">
       <div className="container mx-auto text-center">
         <h2 className="text-2xl font-semibold text-pink-700 mb-8">
           Oferta do Mes

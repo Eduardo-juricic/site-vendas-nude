@@ -1,11 +1,20 @@
 import React, { useState, useEffect } from "react";
 import { collection, getDocs } from "firebase/firestore";
-import { db } from "../firebaseConfig";
+import { db } from "../FirebaseConfig";
+import { useCart } from "../context/CartContext";
+import Notification from "./Notification";
 
 function Products() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const { addToCart } = useCart(); // Use o hook para acessar a função addToCart
+  const [notificationMessage, setNotificationMessage] = useState(null);
+
+  const handleAddToCart = (product) => {
+    addToCart(product);
+    setNotificationMessage(`${product.nome} adicionado ao carrinho!`);
+  };
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -16,8 +25,6 @@ function Products() {
           id: doc.id,
           ...doc.data(),
         }));
-
-        // Filtra os produtos que NÃO possuem a propriedade 'destaque' como true
         const produtosNormais = productsList.filter(
           (product) => !product.destaque
         );
@@ -33,11 +40,11 @@ function Products() {
   }, []);
 
   if (loading) {
-    return <div>Carregando produtos...</div>; // Pode usar um componente de Loading
+    return <div>Carregando produtos...</div>;
   }
 
   if (error) {
-    return <div>Erro: {error.message}</div>; // Lida com erros
+    return <div>Erro: {error.message}</div>;
   }
 
   return (
@@ -50,12 +57,12 @@ function Products() {
           {products.map((product) => (
             <div
               key={product.id}
-              className="bg-white rounded-lg shadow-md overflow-hidden flex flex-col items-center p-6 mb-4" // Mantivemos o padding e a margem
+              className="bg-white rounded-lg shadow-md overflow-hidden flex flex-col items-center p-6 mb-4"
             >
               <img
-                src={product.imagem} // Use a URL da imagem do Cloudinary
+                src={product.imagem}
                 alt={product.nome}
-                className="w-full h-80 object-cover rounded-t-lg" // Voltamos para object-cover e mantivemos h-80
+                className="w-full h-80 object-cover rounded-t-lg"
               />
               <div className="p-4 flex flex-col items-center">
                 <h3 className="font-semibold text-gray-700 text-center mb-3 text-lg">
@@ -67,7 +74,10 @@ function Products() {
                 <p className="text-green-500 font-bold text-xl mb-5">
                   R$ {product.preco.toFixed(2)}
                 </p>
-                <button className="bg-pink-500 hover:bg-pink-700 text-white font-bold py-3 px-8 rounded-full focus:outline-none focus:shadow-outline text-sm">
+                <button
+                  onClick={() => handleAddToCart(product)}
+                  className="bg-pink-500 hover:bg-pink-700 text-white font-bold py-3 px-8 rounded-full focus:outline-none focus:shadow-outline text-sm"
+                >
                   Comprar
                 </button>
               </div>
@@ -75,6 +85,7 @@ function Products() {
           ))}
         </div>
       </div>
+      {notificationMessage && <Notification message={notificationMessage} />}
     </section>
   );
 }

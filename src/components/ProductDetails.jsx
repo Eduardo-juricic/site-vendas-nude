@@ -1,14 +1,19 @@
 // ProductDetails.jsx
 import React, { useState, useEffect } from "react";
-import { useParams } from "react-router-dom"; // Para acessar o parâmetro da rota
+import { useParams, useNavigate } from "react-router-dom"; // Import useNavigate
 import { doc, getDoc } from "firebase/firestore";
-import { db } from "../firebaseConfig"; // Sua configuração do Firestore
+import { db } from "../FirebaseConfig";
+import { FaShoppingCart, FaStar, FaTag } from "react-icons/fa";
+import { useCart } from "../context/CartContext"; // Importe o hook useCart
 
 function ProductDetails() {
-  const { id } = useParams(); // Obtém o ID da URL
+  const { id } = useParams();
   const [produto, setProduto] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [quantidade, setQuantidade] = useState(1);
+  const { addToCart } = useCart(); // Acesse a função addToCart
+  const navigate = useNavigate(); // Inicialize useNavigate
 
   useEffect(() => {
     const fetchProductDetails = async () => {
@@ -19,7 +24,9 @@ function ProductDetails() {
         const docSnap = await getDoc(produtoRef);
 
         if (docSnap.exists()) {
-          setProduto({ id: docSnap.id, ...docSnap.data() });
+          const data = { id: docSnap.id, ...docSnap.data() };
+          setProduto(data);
+          console.log("Dados do Produto:", data);
         } else {
           setError("Produto não encontrado!");
         }
@@ -32,49 +39,127 @@ function ProductDetails() {
     };
 
     fetchProductDetails();
-  }, [id]); // Executa novamente se o ID da URL mudar
+  }, [id]);
 
   if (loading) {
-    return <div>Carregando detalhes do produto...</div>;
+    return (
+      <div className="product-details-loading-alt">
+        Carregando detalhes do produto...
+      </div>
+    );
   }
 
   if (error) {
-    return <div>Erro: {error}</div>;
+    return <div className="product-details-error-alt">Erro: {error}</div>;
   }
 
   if (!produto) {
-    return <div>Produto não encontrado.</div>;
+    return (
+      <div className="product-details-not-found-alt">
+        Produto não encontrado.
+      </div>
+    );
   }
 
+  const handleAddToCart = () => {
+    if (produto) {
+      // Adiciona o produto ao carrinho usando a função do contexto
+      addToCart(produto);
+      alert(`${produto.nome} adicionado ao carrinho!`); // Feedback simples ao usuário
+
+      // Opcional: Redirecionar para a página do carrinho após adicionar
+      navigate("/carrinho"); // Certifique-se de que '/cart' é o caminho correto para sua CartPage
+    }
+  };
+
   return (
-    <div className="container mx-auto py-16">
-      <h1 className="text-3xl font-bold text-gray-800 mb-6">{produto.nome}</h1>
-      <div className="md:flex md:items-start md:space-x-8">
+    <div className="product-details-card-alt">
+      <div className="product-image-container-alt">
         <img
           src={produto.imagem}
           alt={produto.nome}
-          className="w-full h-auto rounded-lg shadow-md md:w-1/2"
-          style={{ maxHeight: "500px", objectFit: "cover" }}
+          className="product-image-alt"
         />
-        <div className="mt-6 md:mt-0 md:w-1/2">
-          <p className="text-gray-600 leading-relaxed mb-4">
-            {produto.descricao}
-          </p>
-          <p className="text-2xl font-bold text-green-600 mb-4">
-            R$ {produto.preco ? produto.preco.toFixed(2) : "0.00"}
-          </p>
-          {/* Adicione aqui outros detalhes do produto, como opções de compra, etc. */}
-          <button className="bg-pink-500 hover:bg-pink-700 text-white font-bold py-3 px-6 rounded-full focus:outline-none focus:shadow-outline">
-            Adicionar ao Carrinho
+      </div>
+      <div className="product-details-info-alt">
+        <h2 className="product-title-alt">{produto.nome}</h2>
+        <div className="product-rating-alt">
+          <FaStar className="star-icon-alt" />
+          <FaStar className="star-icon-alt" />
+          <FaStar className="star-icon-alt" />
+          <FaStar className="star-icon-alt" />
+          <FaStar className="star-icon-alt" />
+          <span className="rating-count-alt">(14087)</span>
+        </div>
+        <div className="product-price-container-alt">
+          {produto && produto.preco && produto.preco_promocional ? (
+            <>
+              {Number(produto.preco) > Number(produto.preco_promocional) ? (
+                <>
+                  <span className="old-price-alt">
+                    R$ {Number(produto.preco).toFixed(2)}
+                  </span>
+                  <span className="current-price-alt">
+                    R$ {Number(produto.preco_promocional).toFixed(2)}
+                  </span>
+                </>
+              ) : (
+                <>
+                  <span className="old-price-alt">
+                    R$ {Number(produto.preco_promocional).toFixed(2)}
+                  </span>
+                  <span className="current-price-alt">
+                    R$ {Number(produto.preco).toFixed(2)}
+                  </span>
+                </>
+              )}
+            </>
+          ) : produto && produto.preco ? (
+            <span className="current-price-alt">
+              R$ {Number(produto.preco).toFixed(2)}
+            </span>
+          ) : (
+            <span className="current-price-alt">Preço não disponível</span>
+          )}
+        </div>
+        <div className="quantity-controls-alt">
+          <button
+            onClick={() => setQuantidade(Math.max(1, quantidade - 1))}
+            className="quantity-button-alt"
+          >
+            -
+          </button>
+          <input
+            type="number"
+            value={quantidade}
+            onChange={(e) => setQuantidade(parseInt(e.target.value))}
+            className="quantity-input-alt"
+          />
+          <button
+            onClick={() => setQuantidade(quantidade + 1)}
+            className="quantity-button-alt"
+          >
+            +
           </button>
         </div>
+        <button className="buy-button-alt" onClick={handleAddToCart}>
+          <FaShoppingCart className="cart-icon-alt" /> Comprar
+        </button>
+        {produto.destaque_curto && (
+          <div className="features-section-alt">
+            <h3 className="features-title-alt">Características</h3>
+            <ul className="features-list-alt">
+              {produto.destaque_curto.split(",").map((feature, index) => (
+                <li key={index} className="feature-item-alt">
+                  • {feature.trim()}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        <p className="product-description-alt">{produto.descricao}</p>
+        {/* Adicione mais detalhes ou componentes aqui */}
       </div>
-      {produto.destaque_curto && (
-        <p className="mt-8 text-lg text-gray-700 italic">
-          Ingredientes principais: {produto.destaque_curto}
-        </p>
-      )}
-      {/* Você pode adicionar mais informações ou componentes aqui */}
     </div>
   );
 }

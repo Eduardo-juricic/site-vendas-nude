@@ -1,1 +1,193 @@
 @import "tailwindcss";
+
+/* ProductDetails.css */
+/* ... (seus estilos existentes) ... */
+
+/* Estilos para o layout alternativo (imagem acima) */
+.product-details-card-alt {
+  max-width: 768px; /* Largura máxima para telas menores ou layout centralizado */
+  margin: 30px auto;
+  padding: 25px;
+  background-color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column; /* Imagem acima dos detalhes */
+  align-items: center; /* Centralizar conteúdo */
+  text-align: center; /* Centralizar texto */
+}
+
+.product-image-container-alt {
+  width: 80%; /* Largura da imagem */
+  margin-bottom: 25px;
+}
+
+.product-image-alt {
+  width: 100%;
+  height: auto;
+  border-radius: 8px;
+  object-fit: cover;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.product-details-info-alt {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* Centralizar itens */
+}
+
+.product-title-alt {
+  font-size: 2.8em;
+  font-weight: 700;
+  color: #333;
+  margin-bottom: 15px;
+  line-height: 1.1;
+}
+
+.product-rating-alt {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+  color: #ffc107;
+}
+
+.star-icon-alt {
+  font-size: 1em;
+  margin-right: 2px;
+}
+
+.rating-count-alt {
+  margin-left: 8px;
+  color: #777;
+  font-size: 0.9em;
+}
+
+.product-price-container-alt {
+  display: flex;
+  align-items: baseline;
+  justify-content: center; /* Centralizar preços */
+  margin-bottom: 20px;
+}
+
+.old-price-alt {
+  font-size: 1.6em;
+  color: #888;
+  text-decoration: line-through;
+  margin-right: 10px;
+}
+
+.current-price-alt {
+  font-size: 2.8em;
+  font-weight: 700;
+  color: #28a745;
+}
+
+.quantity-controls-alt {
+  display: flex;
+  align-items: center;
+  justify-content: center; /* Centralizar controles */
+  margin-bottom: 25px;
+}
+
+.quantity-button-alt {
+  padding: 10px 15px;
+  font-size: 1.1em;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  margin-right: 10px;
+  margin-left: 10px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.quantity-button-alt:hover {
+  background-color: #f0f0f0;
+}
+
+.quantity-input-alt {
+  width: 60px;
+  padding: 10px;
+  font-size: 1.1em;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  text-align: center;
+  margin: 0 10px;
+}
+
+.buy-button-alt {
+  background-color: #e91e63;
+  color: #fff;
+  padding: 12px 25px;
+  border-radius: 8px;
+  font-size: 1.2em;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  transition: background-color 0.3s ease;
+  margin-bottom: 20px;
+}
+
+.buy-button-alt:hover {
+  background-color: #d41854;
+}
+
+.cart-icon-alt {
+  margin-right: 8px;
+  font-size: 1.1em;
+}
+
+.features-section-alt {
+  margin-bottom: 25px;
+  padding: 15px;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  border: 1px solid #eee;
+  text-align: left; /* Alinhar texto das características à esquerda */
+  width: 80%; /* Largura da seção de características */
+}
+
+.features-title-alt {
+  font-size: 1.4em;
+  font-weight: 600;
+  color: #555;
+  margin-bottom: 12px;
+  text-align: center; /* Centralizar o título das características */
+}
+
+.features-list-alt {
+  list-style-type: none;
+  padding: 0;
+}
+
+.feature-item-alt {
+  margin: 6px 0;
+  color: #666;
+  font-size: 1em;
+}
+
+.product-description-alt {
+  color: #555;
+  line-height: 1.7;
+  font-size: 1em;
+  width: 80%; /* Largura da descrição */
+  text-align: left;
+  margin-bottom: 20px;
+}
+
+.product-details-loading-alt,
+.product-details-error-alt,
+.product-details-not-found-alt {
+  padding: 30px;
+  text-align: center;
+  font-size: 1.1em;
+  color: #777;
+}
+
+.product-details-error-alt {
+  color: red;
+}

@@ -8,17 +8,25 @@ import App from "./App.jsx";
 import Login from "./pages/Login.jsx";
 import Admin from "./pages/Admin.jsx"; // vamos criar depois
 import ProductDetails from "./components/ProductDetails"; // Importe o componente de detalhes
+import { CartProvider } from "./context/CartContext"; // Importe o CartProvider do novo local
+import CartPage from "./pages/CartPage"; // Importe a página do carrinho
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
     <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<App />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/admin" element={<Admin />} />
-        <Route path="/produto/:id" element={<ProductDetails />} />{" "}
-        {/* Adicione a rota para ProductDetails aqui */}
-      </Routes>
+      <CartProvider>
+        {" "}
+        {/* Envolva o BrowserRouter com o CartProvider */}
+        <Routes>
+          <Route path="/" element={<App />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/admin" element={<Admin />} />
+          <Route path="/produto/:id" element={<ProductDetails />} />{" "}
+          {/* Adicione a rota para ProductDetails aqui */}
+          <Route path="/carrinho" element={<CartPage />} />{" "}
+          {/* Adicione a rota para o carrinho */}
+        </Routes>
+      </CartProvider>
     </BrowserRouter>
   </StrictMode>
 );

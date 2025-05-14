@@ -1,4 +1,3 @@
-// admin.jsx
 import { useState, useEffect } from "react";
 import {
   collection,
@@ -9,7 +8,7 @@ import {
   doc,
   getDoc,
 } from "firebase/firestore";
-import { db } from "../firebaseConfig"; // Importe o Firestore
+import { db } from "../FirebaseConfig"; // Importe o Firestore
 
 const Admin = () => {
   const [produtos, setProdutos] = useState([]);
@@ -17,11 +16,12 @@ const Admin = () => {
     nome: "",
     descricao: "",
     preco: "",
-    imagem: null, // Alterado para armazenar o arquivo
-    destaque_curto: "", // Novo campo para a frase de destaque
+    imagem: null,
+    destaque_curto: "",
+    preco_promocional: "", // Novo campo para o preço promocional
   });
   const [editandoId, setEditandoId] = useState(null);
-  const [uploading, setUploading] = useState(false); // Novo estado para controlar o upload
+  const [uploading, setUploading] = useState(false);
   const [setCloudinaryConfig] = useState({
     cloud_name: "",
     upload_preset: "",
@@ -29,7 +29,6 @@ const Admin = () => {
 
   const produtosRef = collection(db, "produtos");
 
-  // Buscar todos os produtos
   const buscarProdutos = async () => {
     const snapshot = await getDocs(produtosRef);
     const lista = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
@@ -38,36 +37,32 @@ const Admin = () => {
 
   useEffect(() => {
     buscarProdutos();
-    //get config cloudinary from firestore
     const configRef = doc(db, "config", "cloudinary");
     getDoc(configRef).then((docSnap) => {
-      // Use getDoc
       if (docSnap.exists()) {
         setCloudinaryConfig(docSnap.data());
       } else {
         console.log("No such document!");
       }
     });
-  });
+  }, []);
 
   const handleFileChange = (e) => {
-    // Atualiza o estado do formulário com o arquivo selecionado
     setForm({ ...form, imagem: e.target.files[0] });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setUploading(true); // Inicia o upload
+    setUploading(true);
 
     try {
-      let imageUrl = ""; // Inicializa imageUrl
+      let imageUrl = "";
 
       if (form.imagem) {
-        // Envia a imagem para o Cloudinary
         const formData = new FormData();
         formData.append("file", form.imagem);
         formData.append("upload_preset", "produtos_upload");
-        formData.append("folder", "produtos"); // Opcional: Organiza no Cloudinary
+        formData.append("folder", "produtos");
 
         const response = await fetch(
           `https://api.cloudinary.com/v1_1/dtbvkmxy9/image/upload`,
@@ -82,7 +77,7 @@ const Admin = () => {
         }
 
         const data = await response.json();
-        imageUrl = data.secure_url; // Obtém a URL da imagem
+        imageUrl = data.secure_url;
       }
 
       const produtoData = {
@@ -90,7 +85,8 @@ const Admin = () => {
         descricao: form.descricao,
         preco: Number(form.preco),
         imagem: imageUrl,
-        destaque_curto: form.destaque_curto, // Salva o novo campo
+        destaque_curto: form.destaque_curto,
+        preco_promocional: Number(form.preco_promocional), // Salva o preço promocional
       };
 
       if (editandoId) {
@@ -107,13 +103,13 @@ const Admin = () => {
         preco: "",
         imagem: null,
         destaque_curto: "",
+        preco_promocional: "",
       });
       buscarProdutos();
     } catch (error) {
       console.error("Erro ao enviar produto:", error);
-      // Tratar o erro (exibir mensagem para o usuário)
     } finally {
-      setUploading(false); // Finaliza o upload, independentemente do resultado
+      setUploading(false);
     }
   };
 
@@ -124,15 +120,22 @@ const Admin = () => {
   };
 
   const editar = (produto) => {
-    setForm(produto);
+    setForm({
+      nome: produto.nome,
+      descricao: produto.descricao,
+      preco: produto.preco,
+      imagem: null,
+      destaque_curto: produto.destaque_curto,
+      preco_promocional: produto.preco_promocional || "", // Preenche o preço promocional
+      id: produto.id,
+    });
     setEditandoId(produto.id);
   };
 
   const definirDestaque = async (id) => {
     const produtoParaAtualizar = produtos.find((p) => p.id === id);
-    const novoEstadoDestaque = !produtoParaAtualizar?.destaque; // Inverte o estado atual
+    const novoEstadoDestaque = !produtoParaAtualizar?.destaque;
 
-    // Desmarca todos os outros produtos
     const snapshot = await getDocs(produtosRef);
     const updates = {};
     snapshot.docs.forEach((doc) => {
@@ -141,10 +144,8 @@ const Admin = () => {
       }
     });
 
-    // Marca/desmarca o produto selecionado
     updates[id] = { destaque: novoEstadoDestaque };
 
-    // Aplica todas as atualizações
     await Promise.all(
       Object.keys(updates).map((docId) => {
         const ref = doc(db, "produtos", docId);
@@ -152,11 +153,10 @@ const Admin = () => {
       })
     );
 
-    // Atualiza o estado local imediatamente
     setProdutos((prevProdutos) =>
       prevProdutos.map((produto) => ({
         ...produto,
-        destaque: produto.id === id ? novoEstadoDestaque : false, // Define o clicado e desmarca os outros
+        destaque: produto.id === id ? novoEstadoDestaque : false,
       }))
     );
   };
@@ -188,6 +188,15 @@ const Admin = () => {
           onChange={(e) => setForm({ ...form, preco: e.target.value })}
           className="border p-2 w-full"
           required
+        />
+        <input
+          type="number"
+          placeholder="Preço Promocional (opcional)"
+          value={form.preco_promocional}
+          onChange={(e) =>
+            setForm({ ...form, preco_promocional: e.target.value })
+          }
+          className="border p-2 w-full"
         />
         <input
           type="text"
@@ -235,11 +244,22 @@ const Admin = () => {
                   {produto.destaque_curto}
                 </p>
               )}{" "}
-              {/* Exibe o destaque curto na lista */}
               <p>{produto.descricao}</p>
               <p className="text-green-600 font-semibold">
                 R$ {produto.preco ? produto.preco.toFixed(2) : "0.00"}
               </p>
+              {produto.preco_promocional > 0 &&
+                produto.preco_promocional < produto.preco && (
+                  <p className="text-red-500 line-through text-sm">
+                    R$ {produto.preco.toFixed(2)}
+                  </p>
+                )}
+              {produto.preco_promocional > 0 &&
+                produto.preco_promocional < produto.preco && (
+                  <p className="text-xl font-bold text-orange-500">
+                    R$ {produto.preco_promocional.toFixed(2)}
+                  </p>
+                )}
             </div>
           </div>
           <div className="flex gap-2">

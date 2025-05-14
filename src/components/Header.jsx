@@ -1,13 +1,17 @@
-import React, { useState } from "react";
+import React, { useState } from "react"; // Importe useState do React
 import logo from "/src/assets/logo-gisele.jpg";
 import {
   MagnifyingGlassIcon,
   ShoppingCartIcon,
 } from "@heroicons/react/24/outline";
 import { Bars3Icon } from "@heroicons/react/24/outline";
+import { Link } from "react-router-dom";
+import { useCart } from "../context/CartContext";
 
 function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { cartItems } = useCart();
+  const itemCount = cartItems.reduce((total, item) => total + item.quantity, 0);
 
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
@@ -18,13 +22,13 @@ function Header() {
       <div className="container mx-auto flex items-center justify-between">
         {/* Logo */}
         <div className="w-28 md:w-36">
-          {" "}
-          {/* Aumentei a largura do logo */}
-          <img
-            src={logo}
-            alt="Logo Gisele Carvalho"
-            className="w-full h-auto"
-          />
+          <Link to="/" className="block">
+            <img
+              src={logo}
+              alt="Logo Gisele Carvalho"
+              className="w-full h-auto"
+            />
+          </Link>
         </div>
 
         {/* Barra de Busca */}
@@ -43,15 +47,31 @@ function Header() {
 
         {/* Ícones de Ação */}
         <div className="hidden md:flex items-center space-x-1 md:space-x-2">
-          <a href="#" className="text-pink-500 hover:text-pink-700 text-xs">
+          <Link
+            to="/carrinho"
+            className="text-pink-500 hover:text-pink-700 text-xs relative"
+          >
             <ShoppingCartIcon className="h-5 w-5 fill-current" />
-          </a>
+            {itemCount > 0 && (
+              <span className="absolute top-[-8px] right-[-8px] bg-pink-500 text-white rounded-full text-xxs px-1 font-bold">
+                {itemCount}
+              </span>
+            )}
+          </Link>
         </div>
         {/* Ícone de Carrinho para telas menores */}
         <div className="md:hidden">
-          <a href="#" className="text-pink-500 hover:text-pink-700 text-sm">
+          <Link
+            to="/carrinho"
+            className="text-pink-500 hover:text-pink-700 text-sm relative"
+          >
             <ShoppingCartIcon className="h-5 w-5 fill-current" />
-          </a>
+            {itemCount > 0 && (
+              <span className="absolute top-[-8px] right-[-8px] bg-pink-500 text-white rounded-full text-xxs px-1 font-bold">
+                {itemCount}
+              </span>
+            )}
+          </Link>
         </div>
       </div>
       {/* Barra de Navegação */}
