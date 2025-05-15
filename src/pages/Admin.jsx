@@ -24,16 +24,14 @@ const Admin = () => {
   });
   const [editandoId, setEditandoId] = useState(null);
   const [uploading, setUploading] = useState(false);
-  // Renomeado setCloudinaryConfig para evitar um aviso de "state not used"
   const [cloudinaryConfig, setCloudinaryConfig] = useState({
     cloud_name: "",
     upload_preset: "",
   });
 
-  const navigate = useNavigate(); // Inicialize o hook de navegação
+  const navigate = useNavigate();
   const produtosRef = collection(db, "produtos");
 
-  // Função para buscar produtos
   const buscarProdutos = async () => {
     const snapshot = await getDocs(produtosRef);
     const lista = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
@@ -45,17 +43,15 @@ const Admin = () => {
     try {
       await signOut(auth);
       console.log("Usuário deslogado com sucesso!");
-      navigate("/login"); // Redireciona para a página de login após o logout
+      navigate("/login");
     } catch (error) {
       console.error("Erro ao deslogar:", error);
     }
   };
 
-  // useEffect para carregar produtos e configuração do Cloudinary apenas na montagem
   useEffect(() => {
     buscarProdutos();
 
-    // Carregar configuração do Cloudinary
     const configRef = doc(db, "config", "cloudinary");
     getDoc(configRef)
       .then((docSnap) => {
@@ -70,7 +66,7 @@ const Admin = () => {
       .catch((error) => {
         console.error("Erro ao buscar config do Cloudinary:", error);
       });
-  }, []); // Adicionei o array de dependências vazio para rodar uma vez
+  }, []);
 
   const handleFileChange = (e) => {
     setForm({ ...form, imagem: e.target.files[0] });

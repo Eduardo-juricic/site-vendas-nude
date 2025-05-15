@@ -7,7 +7,18 @@ function CartPage() {
   const [observation, setObservation] = useState("");
 
   const handleQuantityChange = (productId, quantity) => {
+    // Garante que a quantidade seja sempre um número inteiro e no mínimo 1
     const newQuantity = Math.max(1, parseInt(quantity, 10) || 1);
+    updateQuantity(productId, newQuantity);
+  };
+
+  const handleIncreaseQuantity = (productId, currentQuantity) => {
+    updateQuantity(productId, currentQuantity + 1);
+  };
+
+  const handleDecreaseQuantity = (productId, currentQuantity) => {
+    // Garante que a quantidade não seja menor que 1
+    const newQuantity = Math.max(1, currentQuantity - 1);
     updateQuantity(productId, newQuantity);
   };
 
@@ -38,7 +49,7 @@ function CartPage() {
           >
             <path
               fillRule="evenodd"
-              d="M10 18a8 8 0 100-16 8 8 0 000 16zm.707-10.293a1 1 0 00-1.414-1.414L7.5 8.586 5.707 6.879a1 1 0 00-1.414 1.414l2.5 2.5a1 1 0 001.414 0l4-4z"
+              d="M10 18a8 8 0 100-16 8 8 0 000 16zm.707-10.293a1 1 0 00-1.414-1.414L7.5 8.586 5.707 6.879a1 1 0 00-1.414 1.414l2.5 2.5a1 1 b001.414 0l4-4z"
               clipRule="evenodd"
             />
           </svg>
@@ -57,7 +68,6 @@ function CartPage() {
         <div className="lg:col-span-2 bg-white p-6 rounded-lg shadow-md">
           <ul className="divide-y divide-gray-200">
             {cartItems.map((item) => {
-              // Divide a string destaque_curto em um array de características
               const caracteristicas = item.destaque_curto
                 ? item.destaque_curto
                     .split(";")
@@ -106,7 +116,6 @@ function CartPage() {
                       <p className="mt-1 text-sm text-gray-600">
                         {item.descricao}
                       </p>
-                      {/* INÍCIO DA MUDANÇA PARA LISTA DE CARACTERÍSTICAS */}
                       {caracteristicas.length > 0 && (
                         <div className="mt-2 text-sm text-gray-700">
                           <p className="font-semibold mb-1">Características:</p>
@@ -117,7 +126,6 @@ function CartPage() {
                           </ul>
                         </div>
                       )}
-                      {/* FIM DA MUDANÇA */}
                     </div>
                     <div className="flex flex-1 items-end justify-between text-sm mt-4 sm:mt-0">
                       <div className="flex items-center">
@@ -127,16 +135,38 @@ function CartPage() {
                         >
                           Qtd:
                         </label>
-                        <input
-                          id={`quantity-${item.id}`}
-                          type="number"
-                          min="1"
-                          value={item.quantity}
-                          onChange={(e) =>
-                            handleQuantityChange(item.id, e.target.value)
-                          }
-                          className="w-20 px-3 py-1 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 text-center text-gray-900"
-                        />
+                        <div className="flex items-center border border-gray-300 rounded-md shadow-sm">
+                          <button
+                            onClick={() =>
+                              handleDecreaseQuantity(item.id, item.quantity)
+                            }
+                            className="p-2 text-gray-700 hover:bg-gray-100 rounded-l-md focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                          >
+                            -
+                          </button>
+                          <input
+                            id={`quantity-${item.id}`}
+                            type="number"
+                            min="1"
+                            value={item.quantity}
+                            onChange={(e) =>
+                              handleQuantityChange(item.id, e.target.value)
+                            }
+                            className="w-12 text-center text-gray-900 focus:outline-none focus:ring-0 border-l border-r border-gray-300"
+                            style={{
+                              MozAppearance: "textfield",
+                              WebkitAppearance: "none",
+                            }} // Esconde as setas padrão do input number
+                          />
+                          <button
+                            onClick={() =>
+                              handleIncreaseQuantity(item.id, item.quantity)
+                            }
+                            className="p-2 text-gray-700 hover:bg-gray-100 rounded-r-md focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                          >
+                            +
+                          </button>
+                        </div>
                       </div>
                       <div className="flex">
                         <button
