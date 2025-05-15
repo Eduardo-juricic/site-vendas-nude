@@ -6,25 +6,27 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import "./index.css";
 import App from "./App.jsx";
 import Login from "./pages/Login.jsx";
-import Admin from "./pages/Admin.jsx"; // vamos criar depois
-import ProductDetails from "./components/ProductDetails"; // Importe o componente de detalhes
-import { CartProvider } from "./context/CartContext"; // Importe o CartProvider do novo local
-import CartPage from "./pages/CartPage"; // Importe a página do carrinho
+import Admin from "./pages/Admin.jsx";
+import ProductDetails from "./components/ProductDetails";
+import { CartProvider } from "./context/CartContext";
+import CartPage from "./pages/CartPage";
+import PrivateRoute from "./components/PrivateRoute"; // Importe o PrivateRoute
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
     <BrowserRouter>
       <CartProvider>
-        {" "}
-        {/* Envolva o BrowserRouter com o CartProvider */}
         <Routes>
           <Route path="/" element={<App />} />
           <Route path="/login" element={<Login />} />
-          <Route path="/admin" element={<Admin />} />
-          <Route path="/produto/:id" element={<ProductDetails />} />{" "}
-          {/* Adicione a rota para ProductDetails aqui */}
-          <Route path="/carrinho" element={<CartPage />} />{" "}
-          {/* Adicione a rota para o carrinho */}
+
+          {/* Rota Protegida */}
+          <Route element={<PrivateRoute />}>
+            <Route path="/admin" element={<Admin />} />
+          </Route>
+
+          <Route path="/produto/:id" element={<ProductDetails />} />
+          <Route path="/carrinho" element={<CartPage />} />
         </Routes>
       </CartProvider>
     </BrowserRouter>
