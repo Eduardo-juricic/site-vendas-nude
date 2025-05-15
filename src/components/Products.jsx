@@ -50,8 +50,8 @@ function Products() {
   return (
     <section className="bg-white py-12">
       <div className="container mx-auto">
-        <h2 className="text-2xl font-bold mb-6 text-gray-800 text-center">
-          Mais Vendidos
+        <h2 className="text-4xl font-bold mb-6 text-emerald-700 text-center">
+          Nossos Produtos
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
           {products.map((product) => (
@@ -65,18 +65,18 @@ function Products() {
                 className="w-full h-80 object-cover rounded-t-lg"
               />
               <div className="p-4 flex flex-col items-center">
-                <h3 className="font-semibold text-gray-700 text-center mb-3 text-lg">
+                <h3 className="font-semibold text-emerald-800 text-center mb-3 text-lg">
                   {product.nome}
                 </h3>
-                <p className="text-gray-600 text-sm text-center mb-4">
+                <p className="text-emerald-800 text-sm text-center mb-4">
                   {product.descricao}
                 </p>
-                <p className="text-green-500 font-bold text-xl mb-5">
+                <p className="text-emerald-600 font-bold text-xl mb-5">
                   R$ {product.preco.toFixed(2)}
                 </p>
                 <button
                   onClick={() => handleAddToCart(product)}
-                  className="bg-pink-500 hover:bg-pink-700 text-white font-bold py-3 px-8 rounded-full focus:outline-none focus:shadow-outline text-sm"
+                  className="bg-emerald-600 text-white hover:bg-emerald-300 font-bold py-3 px-8 rounded-full focus:outline-none focus:shadow-outline text-sm"
                 >
                   Comprar
                 </button>

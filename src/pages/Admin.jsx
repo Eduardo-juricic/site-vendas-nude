@@ -45,7 +45,7 @@ const Admin = () => {
         console.log("No such document!");
       }
     });
-  }, []);
+  });
 
   const handleFileChange = (e) => {
     setForm({ ...form, imagem: e.target.files[0] });
@@ -166,7 +166,7 @@ const Admin = () => {
       <h1 className="text-2xl font-bold mb-4">Painel Admin</h1>
 
       <form onSubmit={handleSubmit} className="space-y-2 mb-6">
-        <input
+        <textarea
           type="text"
           placeholder="Nome"
           value={form.nome}
@@ -198,9 +198,9 @@ const Admin = () => {
           }
           className="border p-2 w-full"
         />
-        <input
+        <textarea
           type="text"
-          placeholder="Destaque Curto (ex: Ingredientes)"
+          placeholder="Caracteristicas (Separe cada uma com ; )"
           value={form.destaque_curto}
           onChange={(e) => setForm({ ...form, destaque_curto: e.target.value })}
           className="border p-2 w-full"

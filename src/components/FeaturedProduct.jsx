@@ -47,18 +47,18 @@ function FeaturedProduct() {
   return (
     <section className="py-16 bg-gradient-to-br from-emerald-700 to-emerald-300 md:py-48 text-white text-center">
       <div className="container mx-auto text-center">
-        <h2 className="text-2xl font-semibold text-pink-700 mb-8">
-          Oferta do Mes
-        </h2>
+        <h1 className="text-4xl font-semibold text-white mb-8">
+          Promoção do Mês
+        </h1>
         <div className="bg-white rounded-xl shadow-xl overflow-hidden max-w-3xl mx-auto md:flex md:items-center">
           <img
             src={produtoDestaque.imagem}
-            alt={produtoDestaque.name}
+            alt={produtoDestaque.nome}
             className="w-full h-auto object-cover md:w-1/2 rounded-l-xl md:rounded-none"
             style={{ maxHeight: "400px" }}
           />
           <div className="p-8 md:p-10 md:w-1/2 text-center md:text-left">
-            <h3 className="text-2xl font-semibold text-pink-700 mb-3">
+            <h3 className="text-2xl font-semibold text-emerald-800 mb-3">
               {produtoDestaque.nome}
             </h3>
             {produtoDestaque.destaque_curto && (
@@ -71,7 +71,7 @@ function FeaturedProduct() {
             </p>
             <Link
               to={`/produto/${produtoDestaque.id}`}
-              className="bg-pink-700 hover:bg-pink-800 text-white font-bold py-3 px-8 rounded-full focus:outline-none focus:shadow-outline text-lg transition duration-300"
+              className="bg-emerald-600 text-white font-bold py-3 px-8 rounded-full focus:outline-none focus:shadow-outline text-lg transition duration-300"
             >
               Ver Detalhes
             </Link>

@@ -89,7 +89,6 @@ function ProductDetails() {
           <FaStar className="star-icon-alt" />
           <FaStar className="star-icon-alt" />
           <FaStar className="star-icon-alt" />
-          <span className="rating-count-alt">(14087)</span>
         </div>
         <div className="product-price-container-alt">
           {produto && produto.preco && produto.preco_promocional ? (
@@ -142,14 +141,18 @@ function ProductDetails() {
             +
           </button>
         </div>
-        <button className="buy-button-alt" onClick={handleAddToCart}>
-          <FaShoppingCart className="cart-icon-alt" /> Comprar
+        <button
+          className="bg-emerald-600 text-white hover:bg-emerald-300 font-bold py-3 px-8 rounded-full focus:outline-none focus:shadow-outline text-lg transition duration-300 mb-4"
+          onClick={handleAddToCart}
+        >
+          Comprar
         </button>
+        <p className="text-emerald-800">{produto.descricao}</p>
         {produto.destaque_curto && (
           <div className="features-section-alt">
             <h3 className="features-title-alt">Características</h3>
             <ul className="features-list-alt">
-              {produto.destaque_curto.split(",").map((feature, index) => (
+              {produto.destaque_curto.split(";").map((feature, index) => (
                 <li key={index} className="feature-item-alt">
                   • {feature.trim()}
                 </li>
@@ -157,7 +160,6 @@ function ProductDetails() {
             </ul>
           </div>
         )}
-        <p className="product-description-alt">{produto.descricao}</p>
         {/* Adicione mais detalhes ou componentes aqui */}
       </div>
     </div>

@@ -1,25 +1,56 @@
 // App.jsx
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Header from "./components/Header";
 import Hero from "./components/Hero";
 import Products from "./components/Products";
 import FeaturedProduct from "./components/FeaturedProduct";
 import Footer from "./components/Footer";
+import { getProdutoDestaque } from "./utils/firebaseUtils"; // Importe a função
 
-function Home() {
+function App() {
+  const [produtoDestaque, setProdutoDestaque] = useState(null);
+  const [loadingDestaque, setLoadingDestaque] = useState(true);
+  const [errorDestaque, setErrorDestaque] = useState(null);
+
+  useEffect(() => {
+    const buscarDestaque = async () => {
+      setLoadingDestaque(true);
+      setErrorDestaque(null);
+      const destaque = await getProdutoDestaque();
+      if (destaque) {
+        setProdutoDestaque(destaque);
+      } else {
+        console.log("Nenhum produto em destaque encontrado.");
+        // Você pode definir um estado padrão aqui se quiser
+        // setProdutoDestaque({ id: 'default', /* outras propriedades */ });
+      }
+      setLoadingDestaque(false);
+    };
+
+    buscarDestaque();
+  }, []);
+
+  if (loadingDestaque) {
+    return <div>Carregando destaque para o Hero...</div>;
+  }
+
+  if (errorDestaque) {
+    return (
+      <div>Erro ao carregar destaque para o Hero: {errorDestaque.message}</div>
+    );
+  }
+
   return (
     <>
       <Header />
-      <Hero />
+      <Hero produtoDestaque={produtoDestaque} />{" "}
+      {/* Passe a prop para o Hero */}
       <Products />
-      <FeaturedProduct />
+      <FeaturedProduct />{" "}
+      {/* O FeaturedProduct também fará sua própria busca */}
       <Footer />
     </>
   );
-}
-
-function App() {
-  return <Home />;
 }
 
 export default App;
