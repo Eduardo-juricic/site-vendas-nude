@@ -14,7 +14,7 @@ function Header() {
         {/* Ícones à Esquerda */}
         <div className="flex items-center space-x-4">
           <a
-            href="https://www.instagram.com/seu_perfil_instagram"
+            href="https://www.instagram.com/gicarvalhoestetica"
             target="_blank"
             rel="noopener noreferrer"
             className="text-gray-500 hover:text-pink-500 transition duration-300"
@@ -22,7 +22,7 @@ function Header() {
             <FaInstagram className="h-6 w-6" />
           </a>
           <a
-            href="https://wa.me/seun_numero_whatsapp"
+            href="https://wa.me/qr/XNFDJ5UAA5NPN1"
             target="_blank"
             rel="noopener noreferrer"
             className="text-gray-500 hover:text-green-500 transition duration-300"
