@@ -62,7 +62,7 @@ function FeaturedProduct() {
               {produtoDestaque.nome}
             </h3>
             {produtoDestaque.destaque_curto && (
-              <p className="text-lg text-gray-700 mb-5">
+              <p className="text-lg text-emerald-800 mb-5">
                 {produtoDestaque.descricao}
               </p>
             )}
