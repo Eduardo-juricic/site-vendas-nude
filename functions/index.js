@@ -1,81 +1,97 @@
 // functions/index.js
 
-// TENTATIVA COM SDK /v2 explícito. Se der erro de módulo não encontrado,
-// mude para const functions = require("firebase-functions");
-const functions = require("firebase-functions/v2/https"); // Para https.onCall e https.onRequest da v2
-const { setGlobalOptions } = require("firebase-functions/v2"); // Para definir opções globais como região
+const functions = require("firebase-functions/v2/https");
+const { setGlobalOptions } = require("firebase-functions/v2");
 const { MercadoPagoConfig, Preference, Payment } = require("mercadopago");
 const admin = require("firebase-admin");
-const { logger } = require("firebase-functions"); // Logger da v2
+const { logger } = require("firebase-functions");
 
 if (admin.apps.length === 0) {
   admin.initializeApp();
 }
 
-// Definir opções globais para todas as funções (região, etc.) para 2ª Geração
 setGlobalOptions({
   region: "southamerica-east1",
   memory: "256MiB",
   timeoutSeconds: 60,
 });
 
-// --- Lógica de Configuração do Access Token (USANDO VALORES INJETADOS PELOS SECRETS) ---
+// --- INÍCIO DA LÓGICA DE CONFIGURAÇÃO DO ACCESS TOKEN ATUALIZADA ---
 const PROD_SECRET_NAME = "MERCADOPAGO_ACCESS_TOKEN_PROD";
 const TEST_SECRET_NAME = "MERCADOPAGO_ACCESS_TOKEN_TEST";
 
 const PROD_ACCESS_TOKEN_FROM_SECRET = process.env[PROD_SECRET_NAME];
 const TEST_ACCESS_TOKEN_FROM_SECRET = process.env[TEST_SECRET_NAME];
 
-const TEST_ACCESS_TOKEN_FALLBACK =
+// Seu Access Token de TESTE fornecido, usado como fallback para o emulador local se o secret não estiver configurado
+const YOUR_PROVIDED_TEST_ACCESS_TOKEN =
   "TEST-2041651583950402-051909-c6b895278dbff8c34731dd86d4c95c67-98506488";
 
 let CHAVE_ACESSO_MP_A_SER_USADA;
 let idempotencyKeyBase = Date.now().toString();
 
+// Verifica se está rodando no ambiente de produção do Google Cloud (2ª Geração usa K_SERVICE)
+const isProductionEnvironment = !!process.env.K_SERVICE; // `!!` converte para booleano
+// Verifica se está rodando no Emulador do Firebase
+const isEmulatorEnvironment = process.env.FUNCTIONS_EMULATOR === "true";
+
 logger.info(
-  `Tentando ler secrets: PROD_SECRET_NAME (${PROD_SECRET_NAME}) valor: ${
-    PROD_ACCESS_TOKEN_FROM_SECRET ? "Definido" : "NÃO DEFINIDO"
+  `DETECÇÃO DE AMBIENTE: isProductionEnvironment=${isProductionEnvironment}, isEmulatorEnvironment=${isEmulatorEnvironment}`
+);
+logger.info(
+  `Leitura do Secret PROD (${PROD_SECRET_NAME}): ${
+    PROD_ACCESS_TOKEN_FROM_SECRET
+      ? "Definido (" + PROD_ACCESS_TOKEN_FROM_SECRET.substring(0, 8) + "...)"
+      : "NÃO DEFINIDO OU NÃO ACESSÍVEL NESTE MOMENTO (normal durante deploy inicial do secret)"
   }`
 );
 logger.info(
-  `Tentando ler secrets: TEST_SECRET_NAME (${TEST_SECRET_NAME}) valor: ${
-    TEST_ACCESS_TOKEN_FROM_SECRET ? "Definido" : "NÃO DEFINIDO"
+  `Leitura do Secret TEST (${TEST_SECRET_NAME}): ${
+    TEST_ACCESS_TOKEN_FROM_SECRET
+      ? "Definido (" + TEST_ACCESS_TOKEN_FROM_SECRET.substring(0, 8) + "...)"
+      : "NÃO DEFINIDO OU NÃO ACESSÍVEL NESTE MOMENTO"
   }`
 );
 
-// ===== INÍCIO DA MODIFICAÇÃO TEMPORÁRIA PARA TESTE =====
-// Forçar token de teste se o secret de teste estiver disponível, ou usar fallback.
-if (TEST_ACCESS_TOKEN_FROM_SECRET && process.env.K_SERVICE) {
-  // K_SERVICE indica ambiente Cloud Run
-  CHAVE_ACESSO_MP_A_SER_USADA = TEST_ACCESS_TOKEN_FROM_SECRET;
-  logger.info(
-    "FORÇADO PARA TESTE: Usando Access Token de TESTE do Mercado Pago (via Secret Manager)."
-  );
-} else {
-  // Se o secret de teste não for lido (ou se não estiver no Cloud Run, ex: emulador)
-  CHAVE_ACESSO_MP_A_SER_USADA = TEST_ACCESS_TOKEN_FALLBACK;
-  logger.info(
-    "FORÇADO PARA TESTE: Usando Access Token de TESTE do Mercado Pago (fallback hardcoded)."
-  );
-  if (process.env.K_SERVICE && !TEST_ACCESS_TOKEN_FROM_SECRET) {
-    logger.warn(
-      "ATENÇÃO (TESTE): Rodando no Cloud Run, mas o SECRET de TESTE não foi lido. Usando fallback para teste."
+if (isProductionEnvironment) {
+  if (PROD_ACCESS_TOKEN_FROM_SECRET) {
+    CHAVE_ACESSO_MP_A_SER_USADA = PROD_ACCESS_TOKEN_FROM_SECRET;
+    logger.info(
+      "MODO PRODUÇÃO: Usando Access Token de PRODUÇÃO do Mercado Pago (via Secret Manager)."
     );
-  } else if (!process.env.K_SERVICE) {
-    // Se não estiver no Cloud Run, provavelmente é emulador local
-    logger.info("Rodando localmente/emulador, usando fallback de teste.");
+  } else {
+    const errorMsg = `ERRO CRÍTICO: Rodando em AMBIENTE DE PRODUÇÃO (K_SERVICE=${process.env.K_SERVICE}) mas o ACCESS TOKEN DE PRODUÇÃO ('${PROD_SECRET_NAME}') não foi lido do Secret Manager. VERIFIQUE SE O SECRET EXISTE, TEM O NOME CORRETO E SE A FUNÇÃO TEM PERMISSÃO PARA ACESSÁ-LO.`;
+    logger.error(errorMsg);
+    throw new Error(errorMsg);
   }
+} else if (isEmulatorEnvironment) {
+  if (TEST_ACCESS_TOKEN_FROM_SECRET) {
+    CHAVE_ACESSO_MP_A_SER_USADA = TEST_ACCESS_TOKEN_FROM_SECRET;
+    logger.info(
+      "MODO EMULADOR LOCAL: Usando Access Token de TESTE do Mercado Pago (via Secret Manager)."
+    );
+  } else {
+    CHAVE_ACESSO_MP_A_SER_USADA = YOUR_PROVIDED_TEST_ACCESS_TOKEN; // Usa o seu token de teste fornecido
+    logger.warn(
+      `AVISO (EMULADOR LOCAL): Secret ('${TEST_SECRET_NAME}') não lido ou não configurado para o emulador. Usando Access Token de TESTE hardcoded. Para melhor prática, configure o secret de teste se desejar.`
+    );
+  }
+} else {
+  // Fallback para outros ambientes locais não claramente identificados (ex: 'node index.js' diretamente)
+  logger.warn(
+    "AVISO: Ambiente não identificado como Produção (sem K_SERVICE) ou Emulador Firebase (sem FUNCTIONS_EMULATOR=true). Usando Access Token de TESTE hardcoded como fallback. Verifique a configuração do ambiente se isso não for o esperado."
+  );
+  CHAVE_ACESSO_MP_A_SER_USADA = YOUR_PROVIDED_TEST_ACCESS_TOKEN; // Usa o seu token de teste fornecido
 }
-// ===== FIM DA MODIFICAÇÃO TEMPORÁRIA PARA TESTE =====
 
 if (!CHAVE_ACESSO_MP_A_SER_USADA) {
   const errorMsg =
-    "ERRO CRÍTICO: NENHUM ACCESS TOKEN DO MERCADO PAGO FOI CONFIGURADO OU SELECIONADO.";
+    "ERRO CRÍTICO: NENHUM ACCESS TOKEN DO MERCADO PAGO FOI CONFIGURADO ADEQUADAMENTE PARA O AMBIENTE ATUAL APÓS A LÓGICA DE SELEÇÃO.";
   logger.error(errorMsg);
   throw new Error(errorMsg);
 } else {
   logger.info(
-    "Access Token do Mercado Pago selecionado para uso (início):",
+    "Access Token do Mercado Pago FINALMENTE selecionado para uso (início):",
     CHAVE_ACESSO_MP_A_SER_USADA.substring(0, 8) + "..."
   );
 }
@@ -84,12 +100,12 @@ const client = new MercadoPagoConfig({
   accessToken: CHAVE_ACESSO_MP_A_SER_USADA,
   options: { timeout: 7000 },
 });
-logger.info("Cliente MercadoPagoConfig inicializado.");
-// --- Fim da Lógica de Configuração ---
+logger.info("Cliente MercadoPagoConfig inicializado com o token selecionado.");
+// --- FIM DA LÓGICA DE CONFIGURAÇÃO DO ACCESS TOKEN ATUALIZADA ---
 
 // --- DEFINIÇÃO DAS FUNÇÕES ---
 const commonFunctionOptions = {
-  secrets: [PROD_SECRET_NAME, TEST_SECRET_NAME],
+  secrets: [PROD_SECRET_NAME, TEST_SECRET_NAME], // Garante que as funções têm acesso aos secrets
 };
 
 exports.createPaymentPreference = functions.onCall(
@@ -156,28 +172,40 @@ exports.createPaymentPreference = functions.onCall(
         body: preferenceRequest,
         requestOptions,
       });
-      logger.info("Preferência (v2) criada! ID:", response.id);
+      logger.info(
+        "Preferência (v2) criada! ID:",
+        response.id,
+        "Init Point:",
+        response.init_point
+          ? response.init_point.substring(0, 30) + "..."
+          : "N/A"
+      );
       return { id: response.id, init_point: response.init_point };
     } catch (error) {
-      logger.error("Erro ao criar preferência MP (v2):", error);
+      logger.error(
+        "Erro ao criar preferência MP (v2):",
+        error.message,
+        error.cause ? error.cause : error.stack
+      );
       let errorMessage = "Falha ao criar preferência MP.";
-      if (error.cause) {
-        const causeError = error.cause;
-        if (Array.isArray(causeError)) {
-          errorMessage = causeError
-            .map(
-              (c) => `Code ${c.code || "N/A"}: ${c.description || c.message}`
-            )
-            .join("; ");
-        } else if (causeError.message) {
-          errorMessage = causeError.message;
-        } else {
-          errorMessage = JSON.stringify(causeError);
-        }
+      if (error.cause && Array.isArray(error.cause)) {
+        // Mercado Pago SDK v3 costuma ter 'cause' como array
+        errorMessage = error.cause
+          .map(
+            (c) =>
+              `Code ${c.code || "N/A"}: ${
+                c.description || c.message || JSON.stringify(c)
+              }`
+          )
+          .join("; ");
       } else if (error.message) {
         errorMessage = error.message;
       }
-      throw new functions.HttpsError("internal", errorMessage, error.message);
+      throw new functions.HttpsError(
+        "internal",
+        errorMessage,
+        error.cause || error.message
+      );
     }
   }
 );
@@ -196,17 +224,38 @@ exports.processPaymentNotification = functions.onRequest(
     if (type === "payment" && paymentIdFromBody) {
       paymentIdToProcess = paymentIdFromBody;
     } else if (req.query.topic === "payment" && req.query.id) {
+      // Formato de notificação antigo ou alternativo
       paymentIdToProcess = req.query.id;
-    } else if (req.query.type === "payment" && req.query.id) {
-      paymentIdToProcess = req.query.id;
+    } else if (req.query.type === "payment" && req.query.data?.id) {
+      // Outro formato possível
+      paymentIdToProcess = req.query.data.id;
     }
+
+    logger.info(
+      "Notificação Recebida - Tipo:",
+      type,
+      "ID do Body:",
+      paymentIdFromBody,
+      "Query:",
+      req.query,
+      "ID a Processar:",
+      paymentIdToProcess
+    );
 
     if (paymentIdToProcess) {
       try {
-        const payment = new Payment(client);
+        const payment = new Payment(client); // USA O MESMO 'client' CONFIGURADO ACIMA
         const paymentDetails = await payment.get({
           id: String(paymentIdToProcess),
         });
+
+        logger.info(
+          "Detalhes do pagamento obtidos:",
+          paymentDetails
+            ? `Status: ${paymentDetails.status}, Ref Ext: ${paymentDetails.external_reference}`
+            : "Não foi possível obter detalhes."
+        );
+
         if (paymentDetails) {
           const paymentData = paymentDetails;
           const status = paymentData.status;
@@ -219,7 +268,7 @@ exports.processPaymentNotification = functions.onRequest(
             await pedidoRef.update({
               statusPagamentoMP: status,
               paymentIdMP: String(paymentIdToProcess),
-              dadosCompletosPagamentoMP: paymentData,
+              dadosCompletosPagamentoMP: paymentData, // Salva todos os dados do pagamento
               ultimaAtualizacaoWebhook:
                 admin.firestore.FieldValue.serverTimestamp(),
             });
@@ -230,10 +279,13 @@ exports.processPaymentNotification = functions.onRequest(
               logger.info(
                 `Pagamento APROVADO (v2) para o pedido ${externalReference}.`
               );
+              // AQUI VOCÊ PODERIA ADICIONAR LÓGICAS ADICIONAIS PARA PAGAMENTO APROVADO
+              // Ex: Enviar email de confirmação, liberar acesso a conteúdo digital, etc.
             }
           } else {
             logger.warn(
-              `Pagamento ${paymentIdToProcess} (v2) sem external_reference.`
+              `Pagamento ${paymentIdToProcess} (v2) sem external_reference nos detalhes obtidos. Body original:`,
+              req.body
             );
           }
         } else {
@@ -245,22 +297,19 @@ exports.processPaymentNotification = functions.onRequest(
       } catch (error) {
         logger.error(
           `Erro ao processar notificação (v2) para ${paymentIdToProcess}. Erro:`,
-          error
+          error.message,
+          error.cause ? error.cause : error.stack
         );
-        let errorMessage = "Erro interno.";
-        if (error.cause) {
-          const causeError = error.cause;
-          if (Array.isArray(causeError)) {
-            errorMessage = causeError
-              .map(
-                (c) => `Code ${c.code || "N/A"}: ${c.description || c.message}`
-              )
-              .join("; ");
-          } else if (causeError.message) {
-            errorMessage = causeError.message;
-          } else {
-            errorMessage = JSON.stringify(causeError);
-          }
+        let errorMessage = "Erro interno ao processar notificação.";
+        if (error.cause && Array.isArray(error.cause)) {
+          errorMessage = error.cause
+            .map(
+              (c) =>
+                `Code ${c.code || "N/A"}: ${
+                  c.description || c.message || JSON.stringify(c)
+                }`
+            )
+            .join("; ");
         } else if (error.message) {
           errorMessage = error.message;
         }
@@ -268,14 +317,16 @@ exports.processPaymentNotification = functions.onRequest(
       }
     } else {
       logger.info(
-        "Notificação (v2) recebida, mas não processada (tipo/id inválido). Query:",
+        "Notificação (v2) recebida, mas não foi possível determinar o ID do pagamento para processamento. Query:",
         req.query,
         "Body:",
         req.body
       );
       return res
-        .status(200)
-        .send("Notificação (v2) recebida, mas não processada.");
+        .status(200) // Mercado Pago espera 200 para não reenviar, mesmo que não processemos
+        .send(
+          "Notificação (v2) recebida, mas ID do pagamento não identificado para processamento."
+        );
     }
   }
 );
