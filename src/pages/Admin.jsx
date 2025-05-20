@@ -1,3 +1,4 @@
+// Admin.jsx
 import { useState, useEffect } from "react";
 import {
   collection,
@@ -8,12 +9,13 @@ import {
   doc,
   getDoc,
 } from "firebase/firestore";
-import { db, auth } from "../FirebaseConfig"; // Importe o 'auth'
-import { signOut } from "firebase/auth"; // Importe o 'signOut' para a função de logout
-import { useNavigate } from "react-router-dom"; // Importe o 'useNavigate' para redirecionar
+import { db, auth } from "../FirebaseConfig";
+import { signOut } from "firebase/auth";
+import { useNavigate } from "react-router-dom";
 
 const Admin = () => {
   const [produtos, setProdutos] = useState([]);
+  const [pedidos, setPedidos] = useState([]);
   const [form, setForm] = useState({
     nome: "",
     descricao: "",
@@ -31,6 +33,7 @@ const Admin = () => {
 
   const navigate = useNavigate();
   const produtosRef = collection(db, "produtos");
+  const pedidosRef = collection(db, "pedidos");
 
   const buscarProdutos = async () => {
     const snapshot = await getDocs(produtosRef);
@@ -38,7 +41,29 @@ const Admin = () => {
     setProdutos(lista);
   };
 
-  // Função de Logout
+  const buscarPedidos = async () => {
+    try {
+      const snapshot = await getDocs(pedidosRef);
+      const listaPedidos = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      listaPedidos.sort((a, b) => {
+        const dateA = a.dataCriacao?.toDate();
+        const dateB = b.dataCriacao?.toDate();
+        if (dateA && dateB) {
+          return dateB - dateA;
+        }
+        if (dateA) return -1;
+        if (dateB) return 1;
+        return 0;
+      });
+      setPedidos(listaPedidos);
+    } catch (error) {
+      console.error("Erro ao buscar pedidos:", error);
+    }
+  };
+
   const handleLogout = async () => {
     try {
       await signOut(auth);
@@ -51,12 +76,13 @@ const Admin = () => {
 
   useEffect(() => {
     buscarProdutos();
+    buscarPedidos();
 
     const configRef = doc(db, "config", "cloudinary");
     getDoc(configRef)
       .then((docSnap) => {
         if (docSnap.exists()) {
-          setCloudinaryConfig(docSnap.data()); // Atualiza o estado com a configuração
+          setCloudinaryConfig(docSnap.data());
         } else {
           console.log(
             "No such document! (config/cloudinary) - Por favor, crie este documento no Firestore."
@@ -79,20 +105,19 @@ const Admin = () => {
     try {
       let imageUrl = "";
 
-      // Verifica se há uma imagem para upload
       if (form.imagem) {
         const formData = new FormData();
         formData.append("file", form.imagem);
         formData.append(
           "upload_preset",
           cloudinaryConfig.upload_preset || "produtos_upload"
-        ); // Usar a preset do estado
-        formData.append("folder", "produtos"); // Definir uma pasta no Cloudinary
+        );
+        formData.append("folder", "produtos");
 
         const response = await fetch(
           `https://api.cloudinary.com/v1_1/${
             cloudinaryConfig.cloud_name || "dtbvkmxy9"
-          }/image/upload`, // Usar o cloud_name do estado
+          }/image/upload`,
           {
             method: "POST",
             body: formData,
@@ -100,13 +125,18 @@ const Admin = () => {
         );
 
         if (!response.ok) {
-          throw new Error("Erro ao enviar imagem para o Cloudinary");
+          const errorData = await response.json();
+          console.error("Erro do Cloudinary:", errorData);
+          throw new Error(
+            `Erro ao enviar imagem para o Cloudinary: ${
+              errorData.error?.message || response.statusText
+            }`
+          );
         }
 
         const data = await response.json();
         imageUrl = data.secure_url;
       } else if (editandoId) {
-        // Se estiver editando e não enviou uma nova imagem, mantém a URL da imagem existente
         const produtoExistente = produtos.find((p) => p.id === editandoId);
         imageUrl = produtoExistente ? produtoExistente.imagem : "";
       }
@@ -115,9 +145,11 @@ const Admin = () => {
         nome: form.nome,
         descricao: form.descricao,
         preco: Number(form.preco),
-        imagem: imageUrl, // Salva a URL da imagem
+        imagem: imageUrl,
         destaque_curto: form.destaque_curto,
-        preco_promocional: Number(form.preco_promocional),
+        preco_promocional: form.preco_promocional
+          ? Number(form.preco_promocional)
+          : 0,
       };
 
       if (editandoId) {
@@ -128,27 +160,52 @@ const Admin = () => {
         await addDoc(produtosRef, produtoData);
       }
 
-      // Limpa o formulário após o envio/atualização
       setForm({
         nome: "",
         descricao: "",
         preco: "",
-        imagem: null, // Limpa o arquivo selecionado
+        imagem: null,
         destaque_curto: "",
         preco_promocional: "",
       });
-      buscarProdutos(); // Recarrega a lista de produtos
+      if (document.querySelector('input[type="file"]')) {
+        document.querySelector('input[type="file"]').value = "";
+      }
+      buscarProdutos();
     } catch (error) {
       console.error("Erro ao enviar produto:", error);
+      alert(`Erro ao processar produto: ${error.message}`);
     } finally {
       setUploading(false);
     }
   };
 
   const deletar = async (id) => {
-    const ref = doc(db, "produtos", id);
-    await deleteDoc(ref);
-    buscarProdutos();
+    // Para produtos
+    if (window.confirm("Tem certeza que deseja excluir este produto?")) {
+      const ref = doc(db, "produtos", id);
+      await deleteDoc(ref);
+      buscarProdutos();
+    }
+  };
+
+  // NOVA FUNÇÃO PARA DELETAR PEDIDO
+  const deletarPedido = async (id) => {
+    if (
+      window.confirm(
+        `Tem certeza que deseja excluir o pedido ID: ${id}? Esta ação não pode ser desfeita.`
+      )
+    ) {
+      try {
+        const pedidoDocRef = doc(db, "pedidos", id);
+        await deleteDoc(pedidoDocRef);
+        console.log(`Pedido ${id} excluído com sucesso do Firestore.`);
+        buscarPedidos(); // Re-busca os pedidos para atualizar a lista na UI
+      } catch (error) {
+        console.error(`Erro ao excluir pedido ${id}:`, error);
+        alert(`Erro ao excluir pedido: ${error.message}`);
+      }
+    }
   };
 
   const editar = (produto) => {
@@ -156,63 +213,53 @@ const Admin = () => {
       nome: produto.nome,
       descricao: produto.descricao,
       preco: produto.preco,
-      imagem: null, // Não pré-preenche o campo de arquivo, pois é um FileList
-      destaque_curto: produto.destaque_curto,
+      imagem: null,
+      destaque_curto: produto.destaque_curto || "",
       preco_promocional: produto.preco_promocional || "",
-      id: produto.id, // Guarda o ID para a edição
+      id: produto.id,
     });
     setEditandoId(produto.id);
+    window.scrollTo(0, 0);
   };
 
   const definirDestaque = async (id) => {
     const produtoParaAtualizar = produtos.find((p) => p.id === id);
     const novoEstadoDestaque = !produtoParaAtualizar?.destaque;
+    const updatesBatch = [];
 
-    // Primeiro, desativa o destaque de todos os outros produtos
-    const updates = {};
     produtos.forEach((p) => {
       if (p.destaque && p.id !== id) {
-        updates[p.id] = { destaque: false };
+        const ref = doc(db, "produtos", p.id);
+        updatesBatch.push(updateDoc(ref, { destaque: false }));
       }
     });
 
-    // Depois, define o novo estado de destaque para o produto clicado
-    updates[id] = { destaque: novoEstadoDestaque };
-
-    await Promise.all(
-      Object.keys(updates).map((docId) => {
-        const ref = doc(db, "produtos", docId);
-        return updateDoc(ref, updates[docId]);
-      })
+    const refProdutoClicado = doc(db, "produtos", id);
+    updatesBatch.push(
+      updateDoc(refProdutoClicado, { destaque: novoEstadoDestaque })
     );
 
-    // Atualiza o estado local para refletir as mudanças
-    setProdutos((prevProdutos) =>
-      prevProdutos.map((produto) => ({
-        ...produto,
-        destaque: produto.id === id ? novoEstadoDestaque : false, // Apenas um pode ser destaque
-      }))
-    );
+    await Promise.all(updatesBatch);
+    buscarProdutos();
   };
 
   return (
-    <div className="p-4 max-w-3xl mx-auto">
-      <h1 className="text-2xl font-bold mb-4">Painel Admin</h1>
+    <div className="p-4 max-w-4xl mx-auto">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold text-gray-800">Painel Admin</h1>
+        <button
+          onClick={handleLogout}
+          className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition-colors duration-200 shadow"
+        >
+          Sair
+        </button>
+      </div>
 
-      {/* Botão de Logout */}
-      <button
-        onClick={handleLogout}
-        className="bg-red-600 text-white px-4 py-2 rounded mb-6 hover:bg-red-700 transition-colors duration-200"
-      >
-        Sair
-      </button>
-
-      {/* --- Formulário de Adição/Edição de Produto --- */}
       <form
         onSubmit={handleSubmit}
-        className="space-y-2 mb-6 p-4 border rounded shadow-sm bg-white"
+        className="space-y-4 mb-10 p-6 border rounded-lg shadow-lg bg-white"
       >
-        <h2 className="text-xl font-semibold mb-3">
+        <h2 className="text-2xl font-semibold mb-4 text-gray-700">
           {editandoId ? "Editar Produto" : "Adicionar Novo Produto"}
         </h2>
         <textarea
@@ -236,7 +283,7 @@ const Admin = () => {
           value={form.preco}
           onChange={(e) => setForm({ ...form, preco: e.target.value })}
           className="border p-2 w-full rounded"
-          step="0.01" // Permite números decimais
+          step="0.01"
           required
         />
         <input
@@ -247,7 +294,7 @@ const Admin = () => {
             setForm({ ...form, preco_promocional: e.target.value })
           }
           className="border p-2 w-full rounded"
-          step="0.01" // Permite números decimais
+          step="0.01"
         />
         <textarea
           type="text"
@@ -264,15 +311,14 @@ const Admin = () => {
           accept="image/*"
           onChange={handleFileChange}
           className="border p-2 w-full rounded file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-          required={!editandoId && !form.imagem} // A imagem só é obrigatória ao adicionar ou se não houver imagem existente em edição
         />
         <button
           type="submit"
-          className="bg-blue-600 text-white w-full py-2 rounded hover:bg-blue-700 transition-colors duration-200"
+          className="bg-blue-600 text-white w-full py-3 rounded-lg hover:bg-blue-700 transition-colors duration-200 text-lg font-medium"
           disabled={uploading}
         >
           {uploading
-            ? "Enviando Imagem..."
+            ? "Enviando..."
             : editandoId
             ? "Atualizar Produto"
             : "Adicionar Produto"}
@@ -290,86 +336,243 @@ const Admin = () => {
                 destaque_curto: "",
                 preco_promocional: "",
               });
+              if (document.querySelector('input[type="file"]')) {
+                document.querySelector('input[type="file"]').value = "";
+              }
             }}
-            className="bg-gray-400 text-white w-full py-2 rounded mt-2 hover:bg-gray-500 transition-colors duration-200"
+            className="bg-gray-400 text-white w-full py-3 rounded-lg mt-2 hover:bg-gray-500 transition-colors duration-200 text-lg font-medium"
           >
             Cancelar Edição
           </button>
         )}
       </form>
 
-      {/* --- Lista de Produtos Cadastrados --- */}
-      <h2 className="text-xl font-semibold mb-3">Produtos Cadastrados</h2>
-      {produtos.length === 0 && (
-        <p className="text-gray-600">Nenhum produto cadastrado ainda.</p>
-      )}
-      <div className="space-y-4">
-        {produtos.map((produto) => (
-          <div
-            key={produto.id}
-            className="border p-4 rounded shadow-md flex flex-col md:flex-row items-start md:items-center justify-between bg-white"
-          >
-            <div className="flex items-center mb-4 md:mb-0 w-full md:w-auto">
-              {produto.imagem && (
-                <img
-                  src={produto.imagem}
-                  alt={produto.nome}
-                  className="h-24 w-24 object-cover mr-4 rounded-lg flex-shrink-0"
-                />
-              )}
-              <div className="flex-grow">
-                <h3 className="font-bold text-lg">{produto.nome}</h3>
-                {produto.destaque_curto && (
-                  <p className="text-sm text-gray-500 italic mb-1">
-                    {produto.destaque_curto}
-                  </p>
+      <div className="mb-10">
+        <h2 className="text-2xl font-semibold mb-4 text-gray-700">
+          Produtos Cadastrados
+        </h2>
+        {produtos.length === 0 && (
+          <p className="text-gray-600">Nenhum produto cadastrado ainda.</p>
+        )}
+        <div className="space-y-4">
+          {produtos.map((produto) => (
+            <div
+              key={produto.id}
+              className="border p-4 rounded-lg shadow-md flex flex-col md:flex-row items-start md:items-center justify-between bg-white hover:shadow-lg transition-shadow"
+            >
+              <div className="flex items-center mb-4 md:mb-0 w-full md:w-auto flex-grow">
+                {produto.imagem && (
+                  <img
+                    src={produto.imagem}
+                    alt={produto.nome}
+                    className="h-28 w-28 object-cover mr-4 rounded-lg flex-shrink-0 border"
+                  />
                 )}
-                <p className="text-gray-700 text-sm mb-1">
-                  {produto.descricao}
-                </p>
-                {produto.preco_promocional > 0 &&
-                produto.preco_promocional < produto.preco ? (
-                  <div className="flex items-center">
-                    <p className="text-red-500 line-through text-sm mr-2">
-                      R$ {produto.preco.toFixed(2)}
+                <div className="flex-grow">
+                  <h3 className="font-bold text-xl text-gray-800">
+                    {produto.nome}
+                  </h3>
+                  {produto.destaque_curto && (
+                    <p className="text-sm text-gray-500 italic mb-1">
+                      {produto.destaque_curto}
                     </p>
-                    <p className="text-xl font-bold text-orange-600">
-                      R$ {produto.preco_promocional.toFixed(2)}
-                    </p>
-                  </div>
-                ) : (
-                  <p className="text-green-700 font-semibold text-lg">
-                    R$ {produto.preco ? produto.preco.toFixed(2) : "0.00"}
+                  )}
+                  <p className="text-gray-700 text-sm mb-1 line-clamp-2">
+                    {produto.descricao}
                   </p>
-                )}
+                  {produto.preco_promocional > 0 &&
+                  parseFloat(produto.preco_promocional) <
+                    parseFloat(produto.preco) ? (
+                    <div className="flex items-center">
+                      <p className="text-gray-500 line-through text-md mr-2">
+                        R$ {parseFloat(produto.preco).toFixed(2)}
+                      </p>
+                      <p className="text-xl font-bold text-orange-600">
+                        R$ {parseFloat(produto.preco_promocional).toFixed(2)}
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="text-green-700 font-semibold text-lg">
+                      R${" "}
+                      {produto.preco
+                        ? parseFloat(produto.preco).toFixed(2)
+                        : "0.00"}
+                    </p>
+                  )}
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2 justify-end w-full md:w-auto md:ml-4 flex-shrink-0">
+                <button
+                  onClick={() => editar(produto)}
+                  className="bg-yellow-500 text-white px-4 py-2 rounded-md hover:bg-yellow-600 transition-colors duration-200 text-sm"
+                >
+                  Editar
+                </button>
+                <button
+                  onClick={() => deletar(produto.id)} // Função para deletar produto
+                  className="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 transition-colors duration-200 text-sm"
+                >
+                  Excluir
+                </button>
+                <button
+                  onClick={() => definirDestaque(produto.id)}
+                  className={`px-4 py-2 rounded-md transition-colors duration-200 text-sm ${
+                    produto.destaque
+                      ? "bg-indigo-700 text-white hover:bg-indigo-800"
+                      : "bg-indigo-500 text-white hover:bg-indigo-600"
+                  }`}
+                >
+                  {produto.destaque ? "Em Destaque" : "Definir Destaque"}
+                </button>
               </div>
             </div>
-            <div className="flex flex-wrap gap-2 justify-end w-full md:w-auto">
-              <button
-                onClick={() => editar(produto)}
-                className="bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600 transition-colors duration-200"
-              >
-                Editar
-              </button>
-              <button
-                onClick={() => deletar(produto.id)}
-                className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 transition-colors duration-200"
-              >
-                Excluir
-              </button>
-              <button
-                onClick={() => definirDestaque(produto.id)}
-                className={`px-3 py-1 rounded transition-colors duration-200 ${
-                  produto.destaque
-                    ? "bg-indigo-700 text-white hover:bg-indigo-800"
-                    : "bg-indigo-500 text-white hover:bg-indigo-600"
-                }`}
-              >
-                {produto.destaque ? "Em Destaque" : "Definir Destaque"}
-              </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="mt-10">
+        <h2 className="text-2xl font-semibold mb-6 text-gray-700">
+          Pedidos Recebidos
+        </h2>
+        {pedidos.length === 0 && (
+          <p className="text-gray-600">Nenhum pedido recebido ainda.</p>
+        )}
+        <div className="space-y-6">
+          {pedidos.map((pedido) => (
+            <div
+              key={pedido.id}
+              className="border p-6 rounded-lg shadow-lg bg-white"
+            >
+              {/* ... (todo o JSX de exibição do pedido como antes) ... */}
+              <div className="flex flex-col sm:flex-row justify-between items-start mb-3">
+                <h3 className="font-bold text-xl text-blue-700 mb-2 sm:mb-0">
+                  Pedido ID: {pedido.id}
+                </h3>
+                <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                  Data:{" "}
+                  {pedido.dataCriacao?.toDate
+                    ? pedido.dataCriacao
+                        .toDate()
+                        .toLocaleString("pt-BR", {
+                          dateStyle: "short",
+                          timeStyle: "short",
+                        })
+                    : "Data não disponível"}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 mb-4 text-sm">
+                <div>
+                  <p>
+                    <strong>Status Pedido:</strong>{" "}
+                    <span className="font-semibold">
+                      {pedido.statusPedido || "N/A"}
+                    </span>
+                  </p>
+                </div>
+                <div>
+                  <p>
+                    <strong>Status Pagamento MP:</strong>{" "}
+                    <span
+                      className={`font-semibold ${
+                        pedido.statusPagamentoMP === "approved"
+                          ? "text-green-600"
+                          : "text-orange-500"
+                      }`}
+                    >
+                      {pedido.statusPagamentoMP || "N/A"}
+                    </span>
+                  </p>
+                </div>
+                <div>
+                  <p>
+                    <strong>Total do Pedido:</strong>{" "}
+                    <span className="font-semibold">
+                      R$ {pedido.totalAmount?.toFixed(2) || "0.00"}
+                    </span>
+                  </p>
+                </div>
+                {pedido.paymentIdMP && (
+                  <div>
+                    <p>
+                      <strong>ID Pagamento MP:</strong> {pedido.paymentIdMP}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <div className="mb-4 p-4 bg-blue-50 rounded-md border border-blue-200">
+                <h4 className="font-semibold text-md text-blue-800 mb-2">
+                  Detalhes do Cliente:
+                </h4>
+                <p>
+                  <strong>Nome:</strong> {pedido.cliente?.nomeCompleto || "N/A"}
+                </p>
+                <p>
+                  <strong>Email:</strong> {pedido.cliente?.email || "N/A"}
+                </p>
+                <p>
+                  <strong>Telefone:</strong> {pedido.cliente?.telefone || "N/A"}
+                </p>
+                <p>
+                  <strong>CPF:</strong> {pedido.cliente?.cpf || "N/A"}
+                </p>
+              </div>
+
+              <div className="mb-4 p-4 bg-green-50 rounded-md border border-green-200">
+                <h4 className="font-semibold text-md text-green-800 mb-2">
+                  Endereço de Entrega:
+                </h4>
+                <p>
+                  {pedido.cliente?.endereco?.logradouro || "N/A"},{" "}
+                  {pedido.cliente?.endereco?.numero || "N/A"}
+                </p>
+                {pedido.cliente?.endereco?.complemento && (
+                  <p>Complemento: {pedido.cliente?.endereco?.complemento}</p>
+                )}
+                <p>
+                  {pedido.cliente?.endereco?.bairro || "N/A"} -{" "}
+                  {pedido.cliente?.endereco?.cidade || "N/A"},{" "}
+                  {pedido.cliente?.endereco?.estado || "N/A"}
+                </p>
+                <p>CEP: {pedido.cliente?.endereco?.cep || "N/A"}</p>
+              </div>
+
+              <div className="mb-4">
+                <h4 className="font-semibold text-md text-gray-800 mb-2">
+                  Itens do Pedido:
+                </h4>
+                <ul className="list-disc list-inside pl-4 text-sm space-y-1">
+                  {pedido.items?.map((item, index) => (
+                    <li key={index} className="text-gray-700">
+                      {item.nome || "Item sem nome"} (Qtd: {item.quantity || 0})
+                      - R$ {parseFloat(item.precoUnitario || 0).toFixed(2)}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {pedido.observacao && (
+                <div className="mt-4 p-4 bg-yellow-50 rounded-md border border-yellow-200">
+                  <h4 className="font-semibold text-md text-yellow-800 mb-1">
+                    Observação do Cliente:
+                  </h4>
+                  <p className="text-sm text-gray-700">{pedido.observacao}</p>
+                </div>
+              )}
+
+              {/* BOTÃO DE EXCLUIR PEDIDO ADICIONADO AQUI */}
+              <div className="mt-6 pt-4 border-t border-gray-200 flex justify-end">
+                <button
+                  onClick={() => deletarPedido(pedido.id)}
+                  className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 transition-colors duration-200 text-sm shadow"
+                >
+                  Excluir Pedido
+                </button>
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     </div>
   );
