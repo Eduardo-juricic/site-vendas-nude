@@ -31,13 +31,11 @@ function App() {
   }, []);
 
   if (loadingDestaque) {
-    return <div>Carregando destaque para o Hero...</div>;
+    return <div>Carregando...</div>;
   }
 
   if (errorDestaque) {
-    return (
-      <div>Erro ao carregar destaque para o Hero: {errorDestaque.message}</div>
-    );
+    return <div>Erro ao carregar: {errorDestaque.message}</div>;
   }
 
   return (
