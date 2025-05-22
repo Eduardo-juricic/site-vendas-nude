@@ -22,7 +22,7 @@ function Header() {
             <FaInstagram className="h-6 w-6" />
           </a>
           <a
-            href="https://wa.me/qr/XNFDJ5UAA5NPN1"
+            href="https://wa.me/message/BMZ37JTK3G6UJ1"
             target="_blank"
             rel="noopener noreferrer"
             className="text-gray-500 hover:text-green-500 transition duration-300"

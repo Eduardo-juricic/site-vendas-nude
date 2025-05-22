@@ -1,4 +1,4 @@
-import { FaInstagram, FaTiktok, FaYoutube } from "react-icons/fa"; // Ícones populares do Font Awesome
+import { FaInstagram, FaWhatsapp } from "react-icons/fa"; // Ícones populares do Font Awesome
 
 function Footer() {
   return (
@@ -12,11 +12,13 @@ function Footer() {
           <a href="#" className="hover:text-pink-500">
             <FaInstagram className="h-5 w-5" />
           </a>
-          <a href="#" className="hover:text-pink-500">
-            <FaTiktok className="h-5 w-5" />
-          </a>
-          <a href="#" className="hover:text-pink-500">
-            <FaYoutube className="h-5 w-5" />
+          <a
+            href="https://wa.me/message/BMZ37JTK3G6UJ1"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-gray-500 hover:text-green-500 transition duration-300"
+          >
+            <FaWhatsapp className="h-6 w-6" />
           </a>
         </div>
         {/* Outras informações (opcional) */}
