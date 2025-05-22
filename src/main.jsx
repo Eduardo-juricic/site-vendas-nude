@@ -17,6 +17,7 @@ import ProductDetails from "./components/ProductDetails"; //
 import { CartProvider } from "./context/CartContext"; //
 import CartPage from "./pages/CartPage"; //
 import PrivateRoute from "./components/PrivateRoute"; //
+import ServicesPage from "./pages/ServicesPage.jsx"; // Importe a nova página de serviços
 
 // ---- INICIALIZAÇÃO DO MERCADO PAGO ----
 const publicKey = import.meta.env.VITE_MERCADO_PAGO_PUBLIC_KEY;
@@ -92,6 +93,8 @@ createRoot(document.getElementById("root")).render(
           <Route path="/pagamento/sucesso" element={<PagamentoSucesso />} />
           <Route path="/pagamento/falha" element={<PagamentoFalha />} />
           <Route path="/pagamento/pendente" element={<PagamentoPendente />} />
+          <Route path="/servicos" element={<ServicesPage />} />{" "}
+          {/* Adicione a nova rota para a página de serviços */}
         </Routes>
       </CartProvider>
     </BrowserRouter>
