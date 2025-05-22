@@ -12,6 +12,7 @@ import {
 import { db, auth } from "../FirebaseConfig";
 import { signOut } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
+import { ChevronDownIcon, ChevronUpIcon } from "@heroicons/react/24/outline"; // Importar ícones
 
 const Admin = () => {
   const [produtos, setProdutos] = useState([]);
@@ -30,6 +31,7 @@ const Admin = () => {
     cloud_name: "",
     upload_preset: "",
   });
+  const [showOrders, setShowOrders] = useState(false); // Novo estado para controlar a visibilidade dos pedidos
 
   const navigate = useNavigate();
   const produtosRef = collection(db, "produtos");
@@ -255,6 +257,171 @@ const Admin = () => {
         </button>
       </div>
 
+      {/* Seção de Pedidos Recebidos */}
+      <div className="mt-10">
+        <div
+          className="flex justify-between items-center mb-6 cursor-pointer"
+          onClick={() => setShowOrders(!showOrders)}
+        >
+          <h2 className="text-2xl font-semibold text-gray-700">
+            Pedidos Recebidos
+          </h2>
+          {showOrders ? (
+            <ChevronUpIcon className="h-6 w-6 text-gray-700" />
+          ) : (
+            <ChevronDownIcon className="h-6 w-6 text-gray-700" />
+          )}
+        </div>
+
+        {showOrders && (
+          <>
+            {pedidos.length === 0 && (
+              <p className="text-gray-600">Nenhum pedido recebido ainda.</p>
+            )}
+            <div className="space-y-6">
+              {pedidos.map((pedido) => (
+                <div
+                  key={pedido.id}
+                  className="border p-6 rounded-lg shadow-lg bg-white"
+                >
+                  <div className="flex flex-col sm:flex-row justify-between items-start mb-3">
+                    <h3 className="font-bold text-xl text-blue-700 mb-2 sm:mb-0">
+                      Pedido ID: {pedido.id}
+                    </h3>
+                    <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                      Data:{" "}
+                      {pedido.dataCriacao?.toDate
+                        ? pedido.dataCriacao.toDate().toLocaleString("pt-BR", {
+                            dateStyle: "short",
+                            timeStyle: "short",
+                          })
+                        : "Data não disponível"}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 mb-4 text-sm">
+                    <div>
+                      <p>
+                        <strong>Status Pedido:</strong>{" "}
+                        <span className="font-semibold">
+                          {pedido.statusPedido || "N/A"}
+                        </span>
+                      </p>
+                    </div>
+                    <div>
+                      <p>
+                        <strong>Status Pagamento MP:</strong>{" "}
+                        <span
+                          className={`font-semibold ${
+                            pedido.statusPagamentoMP === "approved"
+                              ? "text-green-600"
+                              : "text-orange-500"
+                          }`}
+                        >
+                          {pedido.statusPagamentoMP || "N/A"}
+                        </span>
+                      </p>
+                    </div>
+                    <div>
+                      <p>
+                        <strong>Total do Pedido:</strong>{" "}
+                        <span className="font-semibold">
+                          R$ {pedido.totalAmount?.toFixed(2) || "0.00"}
+                        </span>
+                      </p>
+                    </div>
+                    {pedido.paymentIdMP && (
+                      <div>
+                        <p>
+                          <strong>ID Pagamento MP:</strong> {pedido.paymentIdMP}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="mb-4 p-4 bg-blue-50 rounded-md border border-blue-200">
+                    <h4 className="font-semibold text-md text-blue-800 mb-2">
+                      Detalhes do Cliente:
+                    </h4>
+                    <p>
+                      <strong>Nome:</strong>{" "}
+                      {pedido.cliente?.nomeCompleto || "N/A"}
+                    </p>
+                    <p>
+                      <strong>Email:</strong> {pedido.cliente?.email || "N/A"}
+                    </p>
+                    <p>
+                      <strong>Telefone:</strong>{" "}
+                      {pedido.cliente?.telefone || "N/A"}
+                    </p>
+                    <p>
+                      <strong>CPF:</strong> {pedido.cliente?.cpf || "N/A"}
+                    </p>
+                  </div>
+
+                  <div className="mb-4 p-4 bg-green-50 rounded-md border border-green-200">
+                    <h4 className="font-semibold text-md text-green-800 mb-2">
+                      Endereço de Entrega:
+                    </h4>
+                    <p>
+                      {pedido.cliente?.endereco?.logradouro || "N/A"},{" "}
+                      {pedido.cliente?.endereco?.numero || "N/A"}
+                    </p>
+                    {pedido.cliente?.endereco?.complemento && (
+                      <p>
+                        Complemento: {pedido.cliente?.endereco?.complemento}
+                      </p>
+                    )}
+                    <p>
+                      {pedido.cliente?.endereco?.bairro || "N/A"} -{" "}
+                      {pedido.cliente?.endereco?.cidade || "N/A"},{" "}
+                      {pedido.cliente?.endereco?.estado || "N/A"}
+                    </p>
+                    <p>CEP: {pedido.cliente?.endereco?.cep || "N/A"}</p>
+                  </div>
+
+                  <div className="mb-4">
+                    <h4 className="font-semibold text-md text-gray-800 mb-2">
+                      Itens do Pedido:
+                    </h4>
+                    <ul className="list-disc list-inside pl-4 text-sm space-y-1">
+                      {pedido.items?.map((item, index) => (
+                        <li key={index} className="text-gray-700">
+                          {item.nome || "Item sem nome"} (Qtd:{" "}
+                          {item.quantity || 0}) - R${" "}
+                          {parseFloat(item.precoUnitario || 0).toFixed(2)}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  {pedido.observacao && (
+                    <div className="mt-4 p-4 bg-yellow-50 rounded-md border border-yellow-200">
+                      <h4 className="font-semibold text-md text-yellow-800 mb-1">
+                        Observação do Cliente:
+                      </h4>
+                      <p className="text-sm text-gray-700">
+                        {pedido.observacao}
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="mt-6 pt-4 border-t border-gray-200 flex justify-end">
+                    <button
+                      onClick={() => deletarPedido(pedido.id)}
+                      className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 transition-colors duration-200 text-sm shadow"
+                    >
+                      Excluir Pedido
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* Seção de Adicionar/Editar Produto */}
       <form
         onSubmit={handleSubmit}
         className="space-y-4 mb-10 p-6 border rounded-lg shadow-lg bg-white"
@@ -347,6 +514,7 @@ const Admin = () => {
         )}
       </form>
 
+      {/* Seção de Produtos Cadastrados */}
       <div className="mb-10">
         <h2 className="text-2xl font-semibold mb-4 text-gray-700">
           Produtos Cadastrados
@@ -409,7 +577,7 @@ const Admin = () => {
                   Editar
                 </button>
                 <button
-                  onClick={() => deletar(produto.id)} // Função para deletar produto
+                  onClick={() => deletar(produto.id)}
                   className="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 transition-colors duration-200 text-sm"
                 >
                   Excluir
@@ -423,151 +591,6 @@ const Admin = () => {
                   }`}
                 >
                   {produto.destaque ? "Em Destaque" : "Definir Destaque"}
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="mt-10">
-        <h2 className="text-2xl font-semibold mb-6 text-gray-700">
-          Pedidos Recebidos
-        </h2>
-        {pedidos.length === 0 && (
-          <p className="text-gray-600">Nenhum pedido recebido ainda.</p>
-        )}
-        <div className="space-y-6">
-          {pedidos.map((pedido) => (
-            <div
-              key={pedido.id}
-              className="border p-6 rounded-lg shadow-lg bg-white"
-            >
-              {/* ... (todo o JSX de exibição do pedido como antes) ... */}
-              <div className="flex flex-col sm:flex-row justify-between items-start mb-3">
-                <h3 className="font-bold text-xl text-blue-700 mb-2 sm:mb-0">
-                  Pedido ID: {pedido.id}
-                </h3>
-                <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                  Data:{" "}
-                  {pedido.dataCriacao?.toDate
-                    ? pedido.dataCriacao
-                        .toDate()
-                        .toLocaleString("pt-BR", {
-                          dateStyle: "short",
-                          timeStyle: "short",
-                        })
-                    : "Data não disponível"}
-                </span>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 mb-4 text-sm">
-                <div>
-                  <p>
-                    <strong>Status Pedido:</strong>{" "}
-                    <span className="font-semibold">
-                      {pedido.statusPedido || "N/A"}
-                    </span>
-                  </p>
-                </div>
-                <div>
-                  <p>
-                    <strong>Status Pagamento MP:</strong>{" "}
-                    <span
-                      className={`font-semibold ${
-                        pedido.statusPagamentoMP === "approved"
-                          ? "text-green-600"
-                          : "text-orange-500"
-                      }`}
-                    >
-                      {pedido.statusPagamentoMP || "N/A"}
-                    </span>
-                  </p>
-                </div>
-                <div>
-                  <p>
-                    <strong>Total do Pedido:</strong>{" "}
-                    <span className="font-semibold">
-                      R$ {pedido.totalAmount?.toFixed(2) || "0.00"}
-                    </span>
-                  </p>
-                </div>
-                {pedido.paymentIdMP && (
-                  <div>
-                    <p>
-                      <strong>ID Pagamento MP:</strong> {pedido.paymentIdMP}
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              <div className="mb-4 p-4 bg-blue-50 rounded-md border border-blue-200">
-                <h4 className="font-semibold text-md text-blue-800 mb-2">
-                  Detalhes do Cliente:
-                </h4>
-                <p>
-                  <strong>Nome:</strong> {pedido.cliente?.nomeCompleto || "N/A"}
-                </p>
-                <p>
-                  <strong>Email:</strong> {pedido.cliente?.email || "N/A"}
-                </p>
-                <p>
-                  <strong>Telefone:</strong> {pedido.cliente?.telefone || "N/A"}
-                </p>
-                <p>
-                  <strong>CPF:</strong> {pedido.cliente?.cpf || "N/A"}
-                </p>
-              </div>
-
-              <div className="mb-4 p-4 bg-green-50 rounded-md border border-green-200">
-                <h4 className="font-semibold text-md text-green-800 mb-2">
-                  Endereço de Entrega:
-                </h4>
-                <p>
-                  {pedido.cliente?.endereco?.logradouro || "N/A"},{" "}
-                  {pedido.cliente?.endereco?.numero || "N/A"}
-                </p>
-                {pedido.cliente?.endereco?.complemento && (
-                  <p>Complemento: {pedido.cliente?.endereco?.complemento}</p>
-                )}
-                <p>
-                  {pedido.cliente?.endereco?.bairro || "N/A"} -{" "}
-                  {pedido.cliente?.endereco?.cidade || "N/A"},{" "}
-                  {pedido.cliente?.endereco?.estado || "N/A"}
-                </p>
-                <p>CEP: {pedido.cliente?.endereco?.cep || "N/A"}</p>
-              </div>
-
-              <div className="mb-4">
-                <h4 className="font-semibold text-md text-gray-800 mb-2">
-                  Itens do Pedido:
-                </h4>
-                <ul className="list-disc list-inside pl-4 text-sm space-y-1">
-                  {pedido.items?.map((item, index) => (
-                    <li key={index} className="text-gray-700">
-                      {item.nome || "Item sem nome"} (Qtd: {item.quantity || 0})
-                      - R$ {parseFloat(item.precoUnitario || 0).toFixed(2)}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              {pedido.observacao && (
-                <div className="mt-4 p-4 bg-yellow-50 rounded-md border border-yellow-200">
-                  <h4 className="font-semibold text-md text-yellow-800 mb-1">
-                    Observação do Cliente:
-                  </h4>
-                  <p className="text-sm text-gray-700">{pedido.observacao}</p>
-                </div>
-              )}
-
-              {/* BOTÃO DE EXCLUIR PEDIDO ADICIONADO AQUI */}
-              <div className="mt-6 pt-4 border-t border-gray-200 flex justify-end">
-                <button
-                  onClick={() => deletarPedido(pedido.id)}
-                  className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 transition-colors duration-200 text-sm shadow"
-                >
-                  Excluir Pedido
                 </button>
               </div>
             </div>
