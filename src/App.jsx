@@ -4,6 +4,7 @@ import Header from "./components/Header";
 import Hero from "./components/Hero";
 import Products from "./components/Products";
 import FeaturedProduct from "./components/FeaturedProduct";
+import ServicesCallToAction from "./components/ServicesCallToAction"; // Importe o novo componente
 import Footer from "./components/Footer";
 import { getProdutoDestaque } from "./utils/firebaseUtils"; // Importe a função
 
@@ -44,6 +45,7 @@ function App() {
       <Hero produtoDestaque={produtoDestaque} />{" "}
       {/* Passe a prop para o Hero */}
       <Products />
+      <ServicesCallToAction />
       <FeaturedProduct />{" "}
       {/* O FeaturedProduct também fará sua própria busca */}
       <Footer />
