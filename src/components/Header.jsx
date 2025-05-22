@@ -1,4 +1,4 @@
-import logo from "/src/assets/logo-gisele.jpg";
+import logo from "/logo-gisele.jpg";
 import { ShoppingCartIcon } from "@heroicons/react/24/outline";
 import { Link } from "react-router-dom";
 import { useCart } from "../context/CartContext";
