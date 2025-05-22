@@ -12,7 +12,7 @@ import {
 import { db, auth } from "../FirebaseConfig";
 import { signOut } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
-import { ChevronDownIcon, ChevronUpIcon } from "@heroicons/react/24/outline"; // Importar ícones
+import { ChevronDownIcon, ChevronUpIcon } from "@heroicons/react/24/outline";
 
 const Admin = () => {
   const [produtos, setProdutos] = useState([]);
@@ -21,7 +21,8 @@ const Admin = () => {
     nome: "",
     descricao: "",
     preco: "",
-    imagem: null,
+    imagem: null, // This will hold the File object for new uploads
+    currentImageUrl: "", // New state to hold the existing image URL
     destaque_curto: "",
     preco_promocional: "",
   });
@@ -31,7 +32,7 @@ const Admin = () => {
     cloud_name: "",
     upload_preset: "",
   });
-  const [showOrders, setShowOrders] = useState(false); // Novo estado para controlar a visibilidade dos pedidos
+  const [showOrders, setShowOrders] = useState(false);
 
   const navigate = useNavigate();
   const produtosRef = collection(db, "produtos");
@@ -105,9 +106,10 @@ const Admin = () => {
     setUploading(true);
 
     try {
-      let imageUrl = "";
+      let imageUrl = form.currentImageUrl; // Start with the current image URL if editing
 
       if (form.imagem) {
+        // If a new image file is selected
         const formData = new FormData();
         formData.append("file", form.imagem);
         formData.append(
@@ -138,16 +140,13 @@ const Admin = () => {
 
         const data = await response.json();
         imageUrl = data.secure_url;
-      } else if (editandoId) {
-        const produtoExistente = produtos.find((p) => p.id === editandoId);
-        imageUrl = produtoExistente ? produtoExistente.imagem : "";
       }
 
       const produtoData = {
         nome: form.nome,
         descricao: form.descricao,
         preco: Number(form.preco),
-        imagem: imageUrl,
+        imagem: imageUrl, // Use the updated imageUrl
         destaque_curto: form.destaque_curto,
         preco_promocional: form.preco_promocional
           ? Number(form.preco_promocional)
@@ -162,14 +161,17 @@ const Admin = () => {
         await addDoc(produtosRef, produtoData);
       }
 
+      // Reset form fields after submission
       setForm({
         nome: "",
         descricao: "",
         preco: "",
         imagem: null,
+        currentImageUrl: "", // Clear current image URL as well
         destaque_curto: "",
         preco_promocional: "",
       });
+      // Clear the file input visually
       if (document.querySelector('input[type="file"]')) {
         document.querySelector('input[type="file"]').value = "";
       }
@@ -183,7 +185,6 @@ const Admin = () => {
   };
 
   const deletar = async (id) => {
-    // Para produtos
     if (window.confirm("Tem certeza que deseja excluir este produto?")) {
       const ref = doc(db, "produtos", id);
       await deleteDoc(ref);
@@ -191,7 +192,6 @@ const Admin = () => {
     }
   };
 
-  // NOVA FUNÇÃO PARA DELETAR PEDIDO
   const deletarPedido = async (id) => {
     if (
       window.confirm(
@@ -202,7 +202,7 @@ const Admin = () => {
         const pedidoDocRef = doc(db, "pedidos", id);
         await deleteDoc(pedidoDocRef);
         console.log(`Pedido ${id} excluído com sucesso do Firestore.`);
-        buscarPedidos(); // Re-busca os pedidos para atualizar a lista na UI
+        buscarPedidos();
       } catch (error) {
         console.error(`Erro ao excluir pedido ${id}:`, error);
         alert(`Erro ao excluir pedido: ${error.message}`);
@@ -215,7 +215,8 @@ const Admin = () => {
       nome: produto.nome,
       descricao: produto.descricao,
       preco: produto.preco,
-      imagem: null,
+      imagem: null, // Keep this as null for new file selection
+      currentImageUrl: produto.imagem || "", // Set the existing image URL
       destaque_curto: produto.destaque_curto || "",
       preco_promocional: produto.preco_promocional || "",
       id: produto.id,
@@ -479,6 +480,16 @@ const Admin = () => {
           onChange={handleFileChange}
           className="border p-2 w-full rounded file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
         />
+        {form.currentImageUrl && ( // Display current image if exists
+          <div className="mt-2">
+            <p className="text-sm text-gray-600 mb-1">Imagem atual:</p>
+            <img
+              src={form.currentImageUrl}
+              alt="Imagem atual do produto"
+              className="h-20 w-20 object-cover rounded-md border border-gray-300"
+            />
+          </div>
+        )}
         <button
           type="submit"
           className="bg-blue-600 text-white w-full py-3 rounded-lg hover:bg-blue-700 transition-colors duration-200 text-lg font-medium"
@@ -500,6 +511,7 @@ const Admin = () => {
                 descricao: "",
                 preco: "",
                 imagem: null,
+                currentImageUrl: "", // Clear on cancel
                 destaque_curto: "",
                 preco_promocional: "",
               });
