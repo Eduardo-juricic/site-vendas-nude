@@ -1,41 +1,103 @@
 import { Link } from "react-router-dom";
+import { motion } from "framer-motion";
 
 function Hero({ produtoDestaque }) {
+  const textVariants = {
+    hidden: { opacity: 0, y: -20 },
+    visible: { opacity: 1, y: 0, transition: { duration: 1, ease: "easeOut" } },
+  };
+
+  const buttonVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 1, ease: "easeOut", delay: 0.5 },
+    },
+    hover: {
+      scale: 1.1,
+      transition: { type: "spring", stiffness: 400, damping: 10 },
+    },
+    tap: { scale: 0.9 },
+  };
+
+  // Fallback for when produtoDestaque is not available or valid
+  const fallbackHero = (
+    <section className="bg-gradient-to-br from-emerald-300 to-emerald-700 py-20 md:py-36 text-white text-center flex flex-col items-center justify-center min-h-[40vh] relative overflow-hidden">
+      <div className="absolute inset-0 bg-pattern-light opacity-10 animate-pulse"></div>{" "}
+      {/* Subtle animated background */}
+      <div className="container mx-auto relative z-10">
+        <motion.h1
+          className="text-4xl md:text-6xl font-bold mb-6 drop-shadow-lg"
+          variants={textVariants}
+          initial="hidden"
+          animate="visible"
+        >
+          Realce Sua Beleza Autêntica
+        </motion.h1>
+        <motion.p
+          className="text-lg md:text-2xl mb-10 max-w-2xl mx-auto"
+          variants={textVariants}
+          initial="hidden"
+          animate="visible"
+          transition={{ delay: 0.3 }}
+        >
+          Descubra a nossa seleção exclusiva de produtos para uma rotina de
+          cuidados que celebra a sua individualidade.
+        </motion.p>
+        <motion.button
+          className="bg-white text-emerald-600 hover:bg-emerald-300 font-bold py-4 px-8 rounded-full text-xl shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+          variants={buttonVariants}
+          initial="hidden"
+          animate="visible"
+          whileHover="hover"
+          whileTap="tap"
+          disabled
+        >
+          Promoção indisponível
+        </motion.button>
+      </div>
+    </section>
+  );
+
   if (!produtoDestaque || !produtoDestaque.id) {
-    // Lide com o caso em que produtoDestaque ou produtoDestaque.id são undefined
-    return (
-      <section className="bg-gradient-to-br from-emerald-300 to-emerald-700 py-12 md:py-24 text-white text-center">
-        <div className="container mx-auto">
-          <h1 className="text-4xl md:text-5xl font-bold mb-6">
-            Realce Sua Beleza Autêntica
-          </h1>
-          <p className="text-lg md:text-xl mb-8">
-            Descubra a nossa seleção exclusiva de produtos para uma rotina de
-            cuidados que celebra a sua individualidade.
-          </p>
-          <button className="bg-white text-emerald-600 hover:bg-emerald-300 font-bold py-3 px-6 rounded-full text-lg shadow-md disabled">
-            Promoção indisponível
-          </button>
-        </div>
-      </section>
-    );
+    return fallbackHero;
   }
 
   return (
-    <section className="bg-gradient-to-br from-emerald-300 to-emerald-700 py-12 md:py-24 text-white text-center">
-      <div className="container mx-auto">
-        <h1 className="text-4xl md:text-5xl font-bold mb-6">
+    <section className="bg-gradient-to-br from-emerald-300 to-emerald-700 py-20 md:py-36 text-white text-center flex flex-col items-center justify-center min-h-[50vh] relative overflow-hidden">
+      <div className="absolute inset-0 bg-pattern-light opacity-10 animate-pulse"></div>{" "}
+      {/* Subtle animated background */}
+      <div className="container mx-auto relative z-10">
+        <motion.h1
+          className="text-4xl md:text-6xl font-bold mb-6 drop-shadow-lg"
+          variants={textVariants}
+          initial="hidden"
+          animate="visible"
+        >
           Realce Sua Beleza Autêntica
-        </h1>
-        <p className="text-lg md:text-xl mb-8">
+        </motion.h1>
+        <motion.p
+          className="text-lg md:text-2xl mb-10 max-w-2xl mx-auto"
+          variants={textVariants}
+          initial="hidden"
+          animate="visible"
+          transition={{ delay: 0.3 }}
+        >
           Descubra a nossa seleção exclusiva de produtos para uma rotina de
           cuidados que celebra a sua individualidade.
-        </p>
-        <Link
-          to={`/produto/${produtoDestaque.id}`}
-          className="bg-white text-emerald-600 hover:bg-emerald-300 font-bold py-3 px-6 rounded-full text-lg shadow-md"
-        >
-          Veja a Promoção do Mês
+        </motion.p>
+        <Link to={`/produto/${produtoDestaque.id}`}>
+          <motion.button
+            className="bg-white text-emerald-600 hover:bg-emerald-300 font-bold py-4 px-8 rounded-full text-xl shadow-lg"
+            variants={buttonVariants}
+            initial="hidden"
+            animate="visible"
+            whileHover="hover"
+            whileTap="tap"
+          >
+            Veja a Promoção do Mês
+          </motion.button>
         </Link>
       </div>
     </section>
