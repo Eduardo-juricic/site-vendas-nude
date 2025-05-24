@@ -210,7 +210,6 @@ function CartPage() {
       });
       console.log("Resposta da Cloud Function:", result);
       if (result.data && result.data.init_point) {
-        clearCart();
         window.location.href = result.data.init_point;
       } else {
         console.error("Erro: init_point não encontrado.", result.data);
