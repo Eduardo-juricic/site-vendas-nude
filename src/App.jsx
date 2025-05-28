@@ -46,6 +46,7 @@ function App() {
       <Hero produtoDestaque={produtoDestaque} /> <Video />
       {/* Passe a prop para o Hero */}
       <Products />
+      <ServicesCallToAction />
       <FeaturedProduct />{" "}
       {/* O FeaturedProduct também fará sua própria busca */}
       <Footer />
