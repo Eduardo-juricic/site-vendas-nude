@@ -1,17 +1,21 @@
 // src/pages/CartPage.jsx
 import React, { useState } from "react";
-import { useCart } from "../context/CartContext"; //
-import { Link as RouterLink } from "react-router-dom"; // Mudança para RouterLink
+import { useCart } from "../context/CartContext";
+import { Link as RouterLink } from "react-router-dom";
 import { getFunctions, httpsCallable } from "firebase/functions";
 import { db } from "../FirebaseConfig";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 
 function CartPage() {
-  const { cartItems, updateQuantity, removeItem, getTotal, clearCart } =
-    useCart(); // clearCart está aqui, mas não será usado nesta versão do código. O aviso do ESLint é esperado.
-  const [observation, setObservation] = useState("");
+  const {
+    cartItems,
+    updateQuantity,
+    removeItem,
+    getTotal,
+    clearCart,
+    updateItemObservation,
+  } = useCart();
 
-  // Estados para informações do cliente e pagamento
   const [loadingPayment, setLoadingPayment] = useState(false);
   const [cliente, setCliente] = useState({
     nomeCompleto: "",
@@ -29,24 +33,20 @@ function CartPage() {
   const [formErrors, setFormErrors] = useState({});
 
   const handleQuantityChange = (productId, quantity) => {
-    //
     const newQuantity = Math.max(1, parseInt(quantity, 10) || 1);
     updateQuantity(productId, newQuantity);
   };
 
   const handleIncreaseQuantity = (productId, currentQuantity) => {
-    //
     updateQuantity(productId, currentQuantity + 1);
   };
 
   const handleDecreaseQuantity = (productId, currentQuantity) => {
-    //
     const newQuantity = Math.max(1, currentQuantity - 1);
     updateQuantity(productId, newQuantity);
   };
 
   const handleRemoveItem = (productId) => {
-    //
     removeItem(productId);
   };
 
@@ -58,8 +58,18 @@ function CartPage() {
     }
   };
 
+  // Handler para limpar erro da observação do item quando o usuário digita
+  const handleItemObservationChange = (itemId, value) => {
+    updateItemObservation(itemId, value);
+    const errorKey = `itemObservation-${itemId}`;
+    if (formErrors[errorKey]) {
+      setFormErrors((prevErrors) => ({ ...prevErrors, [errorKey]: null }));
+    }
+  };
+
   const validateForm = () => {
     const errors = {};
+    // Validações do cliente
     if (!cliente.nomeCompleto.trim())
       errors.nomeCompleto = "Nome completo é obrigatório.";
     else if (cliente.nomeCompleto.trim().split(" ").length < 2)
@@ -75,7 +85,7 @@ function CartPage() {
       errors.cpf = "CPF inválido (11 dígitos).";
     if (!cliente.cep.trim()) errors.cep = "CEP é obrigatório.";
     else if (!/^\d{5}-?\d{3}$/.test(cliente.cep.replace(/\D/g, "")))
-      errors.cep = "CEP inválido (use XXXXX ou XXXXX-XXX)."; // Ajustado para aceitar com ou sem hífen, mas salva sem.
+      errors.cep = "CEP inválido.";
     if (!cliente.logradouro.trim())
       errors.logradouro = "Logradouro é obrigatório.";
     if (!cliente.numero.trim()) errors.numero = "Número é obrigatório.";
@@ -84,11 +94,28 @@ function CartPage() {
     if (!cliente.estado.trim()) errors.estado = "Estado é obrigatório.";
     else if (!/^[A-Z]{2}$/i.test(cliente.estado))
       errors.estado = "Estado inválido (sigla com 2 letras).";
+
+    // ATUALIZAÇÃO: Validar observação para CADA item no carrinho
+    cartItems.forEach((item) => {
+      const itemObsKey = `itemObservation-${item.id}`;
+      // Verifique se itemObservation é null, undefined ou uma string vazia após trim()
+      if (!item.itemObservation || !item.itemObservation.trim()) {
+        errors[
+          itemObsKey
+        ] = `Detalhes da personalização para "${item.nome}" são obrigatórios.`;
+      } else if (item.itemObservation.trim().length < 5) {
+        // Exemplo de tamanho mínimo
+        errors[
+          itemObsKey
+        ] = `Forneça mais detalhes para "${item.nome}" (mín. 5 caracteres).`;
+      }
+    });
+
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
 
-  const total = getTotal(); //
+  const total = getTotal();
 
   const functionsInstance = getFunctions(undefined, "southamerica-east1");
   const createPreferenceCallable = httpsCallable(
@@ -98,14 +125,46 @@ function CartPage() {
 
   const handleCheckout = async (e) => {
     e.preventDefault();
+    // A validação agora é feita primeiro, incluindo as observações dos itens.
+    // Precisamos re-validar aqui para capturar os erros das observações dos itens
+    // que podem ter sido atualizados após a última chamada a setFormErrors.
+    // No entanto, validateForm() já chama setFormErrors.
+    // A chamada aqui garante que os erros mais recentes sejam considerados.
     if (!validateForm()) {
       alert("Por favor, corrija os erros no formulário antes de prosseguir.");
-      const firstErrorField = Object.keys(formErrors).find(
+      // Tenta focar no primeiro campo com erro
+      // A ordem dos Object.keys(formErrors) pode não ser garantida,
+      // então o foco pode não ser no primeiro erro visual.
+      // Para um foco mais preciso, você pode priorizar campos específicos ou
+      // iterar sobre uma ordem predefinida de chaves de erro.
+      const firstErrorKey = Object.keys(formErrors).find(
         (key) => formErrors[key]
       );
-      if (firstErrorField) {
-        const fieldElement = document.getElementById(firstErrorField);
-        if (fieldElement) fieldElement.focus();
+
+      if (firstErrorKey) {
+        const firstErrorElement = document.getElementById(firstErrorKey);
+        if (firstErrorElement) {
+          firstErrorElement.scrollIntoView({
+            behavior: "smooth",
+            block: "center",
+          });
+          firstErrorElement.focus({ preventScroll: true });
+        } else {
+          // Fallback para o primeiro item com erro de observação, se o ID do campo não for direto
+          const itemErrorKey = Object.keys(formErrors).find((k) =>
+            k.startsWith("itemObservation-")
+          );
+          if (itemErrorKey) {
+            const itemErrorElement = document.getElementById(itemErrorKey);
+            if (itemErrorElement) {
+              itemErrorElement.scrollIntoView({
+                behavior: "smooth",
+                block: "center",
+              });
+              itemErrorElement.focus({ preventScroll: true });
+            }
+          }
+        }
       }
       return;
     }
@@ -142,11 +201,11 @@ function CartPage() {
               ? item.preco_promocional
               : item.preco
           ),
+          observacaoProduto: item.itemObservation || "",
         })),
         totalAmount: total,
         statusPedido: "pendente_pagamento",
         statusPagamentoMP: "pendente",
-        observacao: observation,
         dataCriacao: serverTimestamp(),
       });
       orderId = newOrderRef.id;
@@ -231,7 +290,6 @@ function CartPage() {
   };
 
   if (cartItems.length === 0) {
-    //
     return (
       <div className="container mx-auto px-4 py-20 text-center bg-white shadow-lg rounded-lg mt-10 max-w-2xl">
         <h2 className="text-3xl font-extrabold text-gray-900 mb-6">
@@ -240,7 +298,7 @@ function CartPage() {
         <p className="text-lg text-gray-600 mb-8">
           Que tal explorar nossos produtos incríveis?
         </p>
-        <RouterLink // MUDADO para RouterLink
+        <RouterLink
           to="/"
           className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-600 transition duration-300 ease-in-out"
         >
@@ -250,12 +308,11 @@ function CartPage() {
             viewBox="0 0 20 20"
             fill="currentColor"
           >
-            {" "}
             <path
               fillRule="evenodd"
-              d="M10 18a8 8 0 100-16 8 8 0 000 16zm.707-10.293a1 1 0 00-1.414-1.414L7.5 8.586 5.707 6.879a1 1 0 00-1.414 1.414l2.5 2.5a1 1 001.414 0l4-4z"
+              d="M10 18a8 8 0 100-16 8 8 0 000 16zm.707-10.293a1 1 0 00-1.414-1.414L7.5 8.586 5.707 6.879a1 1 0 00-1.414 1.414l2.5 2.5a1 1 0 001.414 0l4-4z"
               clipRule="evenodd"
-            />{" "}
+            />
           </svg>
           Voltar para a loja
         </RouterLink>
@@ -270,7 +327,6 @@ function CartPage() {
       </h2>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 bg-white p-6 rounded-lg shadow-md">
-          {/* Lista de Itens do Carrinho (seu JSX existente) */}
           <ul className="divide-y divide-gray-200">
             {cartItems.map((item) => {
               const caracteristicas = item.destaque_curto
@@ -279,79 +335,110 @@ function CartPage() {
                     .map((c) => c.trim())
                     .filter((c) => c !== "")
                 : [];
+              const itemObsErrorKey = `itemObservation-${item.id}`; // Chave para o erro deste item
               return (
                 <li key={item.id} className="flex flex-col sm:flex-row py-6">
-                  {" "}
                   <div className="flex-shrink-0 w-32 h-32 sm:w-40 sm:h-40 relative rounded-md overflow-hidden">
-                    {" "}
                     <img
                       src={item.imagem}
                       alt={item.nome}
                       className="w-full h-full object-cover object-center"
-                    />{" "}
+                    />
                     {item.preco_promocional &&
                       item.preco_promocional < item.preco && (
                         <span className="absolute top-2 left-2 bg-emerald-500 text-white text-xs font-semibold px-2 py-1 rounded-full">
                           Promoção!
                         </span>
-                      )}{" "}
-                  </div>{" "}
-                  <div className="ml-4 flex flex-1 flex-col justify-between">
-                    {" "}
+                      )}
+                  </div>
+                  <div className="ml-0 sm:ml-4 flex flex-1 flex-col justify-between mt-4 sm:mt-0">
                     <div>
-                      {" "}
                       <div className="flex justify-between items-baseline mb-2">
-                        {" "}
                         <h3 className="text-xl font-bold text-gray-900">
                           {item.nome}
-                        </h3>{" "}
+                        </h3>
                         {item.preco_promocional &&
                         item.preco_promocional < item.preco ? (
                           <div className="text-lg font-semibold flex items-baseline">
-                            {" "}
                             <span className="text-gray-500 line-through mr-2">
                               R$ {Number(item.preco).toFixed(2)}
-                            </span>{" "}
+                            </span>
                             <span className="text-emerald-600">
                               R$ {Number(item.preco_promocional).toFixed(2)}
-                            </span>{" "}
+                            </span>
                           </div>
                         ) : (
                           <p className="text-lg font-semibold text-gray-800">
                             R$ {Number(item.preco).toFixed(2)}
                           </p>
-                        )}{" "}
-                      </div>{" "}
+                        )}
+                      </div>
                       <p className="mt-1 text-sm text-gray-600">
                         {item.descricao}
-                      </p>{" "}
+                      </p>
                       {caracteristicas.length > 0 && (
                         <div className="mt-2 text-sm text-gray-700">
-                          {" "}
-                          <p className="font-semibold mb-1">
-                            Características:
-                          </p>{" "}
+                          <p className="font-semibold mb-1">Características:</p>
                           <ul className="list-disc list-inside space-y-0.5 text-gray-600">
-                            {" "}
                             {caracteristicas.map((caracteristica, index) => (
                               <li key={index}>{caracteristica}</li>
-                            ))}{" "}
-                          </ul>{" "}
+                            ))}
+                          </ul>
                         </div>
-                      )}{" "}
-                    </div>{" "}
+                      )}
+                    </div>
+
+                    {/* ATUALIZAÇÃO: Campo de observação por item com exibição de erro */}
+                    <div className="mt-4">
+                      <label
+                        htmlFor={itemObsErrorKey} // Usando a chave de erro como ID também
+                        className="block text-sm font-medium text-gray-700 mb-1"
+                      >
+                        Personalização para "{item.nome}"*{" "}
+                        <span className="text-xs font-normal text-gray-500">
+                          (Ex: nome, tema, cor)
+                        </span>
+                        :
+                      </label>
+                      <textarea
+                        id={itemObsErrorKey} // ID para foco e associação com label
+                        value={item.itemObservation || ""}
+                        onChange={
+                          (e) =>
+                            handleItemObservationChange(item.id, e.target.value) // Usar o novo handler
+                        }
+                        className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm ${
+                          formErrors[itemObsErrorKey]
+                            ? "border-red-500"
+                            : "border-gray-300"
+                        }`}
+                        rows="2"
+                        placeholder="Digite os detalhes da personalização aqui..."
+                        aria-describedby={
+                          formErrors[itemObsErrorKey]
+                            ? `${itemObsErrorKey}-error`
+                            : undefined
+                        }
+                      ></textarea>
+                      {formErrors[itemObsErrorKey] && (
+                        <p
+                          id={`${itemObsErrorKey}-error`}
+                          className="text-red-500 text-xs mt-1"
+                        >
+                          {formErrors[itemObsErrorKey]}
+                        </p>
+                      )}
+                    </div>
+
                     <div className="flex flex-1 items-end justify-between text-sm mt-4 sm:mt-0">
-                      {" "}
                       <div className="flex items-center">
-                        {" "}
                         <label
                           htmlFor={`quantity-${item.id}`}
                           className="mr-2 text-gray-700"
                         >
                           Qtd:
-                        </label>{" "}
+                        </label>
                         <div className="flex items-center border border-gray-300 rounded-md shadow-sm">
-                          {" "}
                           <button
                             onClick={() =>
                               handleDecreaseQuantity(item.id, item.quantity)
@@ -359,7 +446,7 @@ function CartPage() {
                             className="p-2 text-gray-700 hover:bg-gray-100 rounded-l-md focus:outline-none focus:ring-1 focus:ring-emerald-500"
                           >
                             -
-                          </button>{" "}
+                          </button>
                           <input
                             id={`quantity-${item.id}`}
                             type="number"
@@ -373,7 +460,7 @@ function CartPage() {
                               MozAppearance: "textfield",
                               WebkitAppearance: "none",
                             }}
-                          />{" "}
+                          />
                           <button
                             onClick={() =>
                               handleIncreaseQuantity(item.id, item.quantity)
@@ -381,49 +468,32 @@ function CartPage() {
                             className="p-2 text-gray-700 hover:bg-gray-100 rounded-r-md focus:outline-none focus:ring-1 focus:ring-emerald-500"
                           >
                             +
-                          </button>{" "}
-                        </div>{" "}
-                      </div>{" "}
+                          </button>
+                        </div>
+                      </div>
                       <div className="flex">
-                        {" "}
                         <button
                           onClick={() => handleRemoveItem(item.id)}
                           className="text-red-600 hover:text-red-800 transition duration-200 ease-in-out font-medium"
                         >
                           Remover
-                        </button>{" "}
-                      </div>{" "}
-                    </div>{" "}
-                  </div>{" "}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 </li>
               );
             })}
           </ul>
-          {/* Textarea de Observação (seu JSX existente) */}
-          <div className="mt-8 pt-6 border-t border-gray-200">
-            <label
-              htmlFor="observation"
-              className="block text-gray-800 text-base font-semibold mb-2"
-            >
-              Observação (opcional):
-            </label>
-            <textarea
-              id="observation"
-              value={observation}
-              onChange={(e) => setObservation(e.target.value)}
-              className="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 text-gray-700 placeholder-gray-400"
-              rows="4"
-              placeholder="Adicione observações sobre o pedido, como preferências de entrega ou mensagens."
-            ></textarea>
-          </div>
 
-          {/* === INÍCIO DO FORMULÁRIO DE DADOS DO CLIENTE === */}
           {cartItems.length > 0 && (
             <form
               onSubmit={handleCheckout}
               id="checkout-form"
               className="mt-8 pt-6 border-t border-gray-200"
+              noValidate // Desabilita validação HTML nativa para usar apenas a do JS
             >
+              {/* Os campos de informações do cliente vêm aqui, como antes */}
               <h3 className="text-xl font-semibold text-gray-800 mb-6">
                 Informações para Contato e Entrega
               </h3>
@@ -440,7 +510,6 @@ function CartPage() {
                   id="nomeCompleto"
                   value={cliente.nomeCompleto}
                   onChange={handleClienteChange}
-                  required
                   className={`w-full p-2 border rounded-md shadow-sm ${
                     formErrors.nomeCompleto
                       ? "border-red-500"
@@ -467,7 +536,6 @@ function CartPage() {
                     id="email"
                     value={cliente.email}
                     onChange={handleClienteChange}
-                    required
                     className={`w-full p-2 border rounded-md shadow-sm ${
                       formErrors.email ? "border-red-500" : "border-gray-300"
                     }`}
@@ -483,7 +551,10 @@ function CartPage() {
                     htmlFor="telefone"
                     className="block text-sm font-medium text-gray-700 mb-1"
                   >
-                    Telefone* (com DDD, apenas números)
+                    Telefone*{" "}
+                    <span className="text-xs font-normal text-gray-500">
+                      (com DDD, apenas números)
+                    </span>
                   </label>
                   <input
                     type="tel"
@@ -492,7 +563,6 @@ function CartPage() {
                     value={cliente.telefone}
                     onChange={handleClienteChange}
                     placeholder="Ex: 22999998888"
-                    required
                     className={`w-full p-2 border rounded-md shadow-sm ${
                       formErrors.telefone ? "border-red-500" : "border-gray-300"
                     }`}
@@ -509,7 +579,10 @@ function CartPage() {
                   htmlFor="cpf"
                   className="block text-sm font-medium text-gray-700 mb-1"
                 >
-                  CPF* (apenas números)
+                  CPF*{" "}
+                  <span className="text-xs font-normal text-gray-500">
+                    (apenas números)
+                  </span>
                 </label>
                 <input
                   type="text"
@@ -518,7 +591,6 @@ function CartPage() {
                   value={cliente.cpf}
                   onChange={handleClienteChange}
                   maxLength="11"
-                  required
                   className={`w-full p-2 border rounded-md shadow-sm ${
                     formErrors.cpf ? "border-red-500" : "border-gray-300"
                   }`}
@@ -535,7 +607,10 @@ function CartPage() {
                   htmlFor="cep"
                   className="block text-sm font-medium text-gray-700 mb-1"
                 >
-                  CEP* (apenas números)
+                  CEP*{" "}
+                  <span className="text-xs font-normal text-gray-500">
+                    (apenas números)
+                  </span>
                 </label>
                 <input
                   type="text"
@@ -544,7 +619,6 @@ function CartPage() {
                   value={cliente.cep}
                   onChange={handleClienteChange}
                   maxLength="8"
-                  required
                   className={`w-full p-2 border rounded-md shadow-sm ${
                     formErrors.cep ? "border-red-500" : "border-gray-300"
                   }`}
@@ -559,7 +633,10 @@ function CartPage() {
                     htmlFor="logradouro"
                     className="block text-sm font-medium text-gray-700 mb-1"
                   >
-                    Logradouro* (Rua, Av.)
+                    Logradouro*{" "}
+                    <span className="text-xs font-normal text-gray-500">
+                      (Rua, Av.)
+                    </span>
                   </label>
                   <input
                     type="text"
@@ -567,7 +644,6 @@ function CartPage() {
                     id="logradouro"
                     value={cliente.logradouro}
                     onChange={handleClienteChange}
-                    required
                     className={`w-full p-2 border rounded-md shadow-sm ${
                       formErrors.logradouro
                         ? "border-red-500"
@@ -593,7 +669,6 @@ function CartPage() {
                     id="numero"
                     value={cliente.numero}
                     onChange={handleClienteChange}
-                    required
                     className={`w-full p-2 border rounded-md shadow-sm ${
                       formErrors.numero ? "border-red-500" : "border-gray-300"
                     }`}
@@ -611,7 +686,10 @@ function CartPage() {
                     htmlFor="complemento"
                     className="block text-sm font-medium text-gray-700 mb-1"
                   >
-                    Complemento (opcional)
+                    Complemento{" "}
+                    <span className="text-xs font-normal text-gray-500">
+                      (opcional)
+                    </span>
                   </label>
                   <input
                     type="text"
@@ -635,7 +713,6 @@ function CartPage() {
                     id="bairro"
                     value={cliente.bairro}
                     onChange={handleClienteChange}
-                    required
                     className={`w-full p-2 border rounded-md shadow-sm ${
                       formErrors.bairro ? "border-red-500" : "border-gray-300"
                     }`}
@@ -661,7 +738,6 @@ function CartPage() {
                     id="cidade"
                     value={cliente.cidade}
                     onChange={handleClienteChange}
-                    required
                     className={`w-full p-2 border rounded-md shadow-sm ${
                       formErrors.cidade ? "border-red-500" : "border-gray-300"
                     }`}
@@ -677,7 +753,10 @@ function CartPage() {
                     htmlFor="estado"
                     className="block text-sm font-medium text-gray-700 mb-1"
                   >
-                    Estado* (sigla, ex: RJ)
+                    Estado*{" "}
+                    <span className="text-xs font-normal text-gray-500">
+                      (sigla, ex: RJ)
+                    </span>
                   </label>
                   <input
                     type="text"
@@ -686,7 +765,6 @@ function CartPage() {
                     value={cliente.estado}
                     onChange={handleClienteChange}
                     maxLength="2"
-                    required
                     className={`w-full p-2 border rounded-md shadow-sm ${
                       formErrors.estado ? "border-red-500" : "border-gray-300"
                     }`}
@@ -700,34 +778,32 @@ function CartPage() {
               </div>
             </form>
           )}
-          {/* === FIM DO FORMULÁRIO DE DADOS DO CLIENTE === */}
-        </div>{" "}
-        {/* Fim da div lg:col-span-2 */}
-        {/* Div do Resumo do Pedido */}
-        <div className="lg:col-span-1 bg-white p-6 rounded-lg shadow-md h-fit">
+        </div>
+
+        <div className="lg:col-span-1 bg-white p-6 rounded-lg shadow-md h-fit sticky top-24">
           <h3 className="text-2xl font-bold text-gray-900 mb-4">
             Resumo do Pedido
           </h3>
           <div className="flex justify-between items-center text-gray-700 text-lg mb-2">
             <span>Subtotal:</span>
-            <span>R$ {total.toFixed(2)}</span>
+            <span>R$ {total.toFixed(2).replace(".", ",")}</span>
           </div>
           <div className="flex justify-between items-center text-xl font-extrabold text-gray-900 border-t pt-4 mt-4">
             <span>Total:</span>
-            <span>R$ {total.toFixed(2)}</span>
+            <span>R$ {total.toFixed(2).replace(".", ",")}</span>
           </div>
           <button
-            type="submit" // Para submeter o formulário de dados do cliente
-            form="checkout-form" // Associa este botão ao formulário com id="checkout-form"
+            type="submit"
+            form="checkout-form"
             disabled={loadingPayment || cartItems.length === 0}
-            className="w-full mt-6 bg-emerald-500 hover:bg-emerald-700 text-white font-bold py-3 px-6 rounded-md text-lg shadow-lg transform transition duration-300 ease-in-out hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full mt-6 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-6 rounded-md text-lg shadow-lg transform transition duration-300 ease-in-out hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loadingPayment
               ? "Processando Pagamento..."
               : "Finalizar Compra e Pagar"}
           </button>
           <div className="mt-4 text-center">
-            <RouterLink // Mudado para RouterLink
+            <RouterLink
               to="/"
               className="text-emerald-600 hover:text-emerald-800 hover:underline transition duration-200 ease-in-out font-medium"
             >
