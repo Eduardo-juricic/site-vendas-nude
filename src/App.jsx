@@ -7,6 +7,7 @@ import FeaturedProduct from "./components/FeaturedProduct";
 import ServicesCallToAction from "./components/ServicesCallToAction"; // Importe o novo componente
 import Footer from "./components/Footer";
 import { getProdutoDestaque } from "./utils/firebaseUtils"; // Importe a função
+import Video from "./components/video";
 
 function App() {
   const [produtoDestaque, setProdutoDestaque] = useState(null);
@@ -42,10 +43,9 @@ function App() {
   return (
     <>
       <Header />
-      <Hero produtoDestaque={produtoDestaque} />{" "}
+      <Hero produtoDestaque={produtoDestaque} /> <Video />
       {/* Passe a prop para o Hero */}
       <Products />
-      <ServicesCallToAction />
       <FeaturedProduct />{" "}
       {/* O FeaturedProduct também fará sua própria busca */}
       <Footer />

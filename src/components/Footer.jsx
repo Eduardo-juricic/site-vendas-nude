@@ -5,7 +5,7 @@ function Footer() {
     <footer className="bg-gray-100 py-6 text-center text-gray-600 text-sm">
       <div className="container mx-auto flex flex-col items-center">
         {/* Copyright */}
-        <p className="mb-3">© {new Date().getFullYear()} Gisele Carvalho</p>
+        <p className="mb-3">© {new Date().getFullYear()} artesanal</p>
 
         {/* Redes Sociais */}
         <div className="flex space-x-4">
@@ -13,7 +13,7 @@ function Footer() {
             <FaInstagram className="h-5 w-5" />
           </a>
           <a
-            href="https://wa.me/message/BMZ37JTK3G6UJ1"
+            href="#"
             target="_blank"
             rel="noopener noreferrer"
             className="text-gray-500 hover:text-green-500 transition duration-300"
@@ -22,7 +22,7 @@ function Footer() {
           </a>
         </div>
         {/* Outras informações (opcional) */}
-        <p className="mt-3 text-xs">Rua Exemplo, 123 - Araruama, RJ</p>
+        <p className="mt-3 text-xs">Rua Exemplo, 123 - RJ</p>
       </div>
     </footer>
   );

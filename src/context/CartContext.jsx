@@ -1,88 +1,86 @@
-import React, {
-  createContext,
-  useState,
-  useContext,
-  useEffect,
-  useCallback,
-} from "react";
+// src/context/CartContext.jsx
+import React, { createContext, useState, useContext, useEffect } from "react";
 
 const CartContext = createContext();
 
 export const useCart = () => useContext(CartContext);
 
 export const CartProvider = ({ children }) => {
-  // 1. Carrega o carrinho do localStorage ao inicializar o estado
   const [cartItems, setCartItems] = useState(() => {
-    try {
-      const localCart = localStorage.getItem("cartItems");
-      // Retorna o carrinho do localStorage se existir, senão um array vazio
-      return localCart ? JSON.parse(localCart) : [];
-    } catch (error) {
-      console.error("Erro ao carregar carrinho do localStorage:", error);
-      return []; // Garante que o estado seja um array vazio em caso de erro
-    }
+    const localData = localStorage.getItem("cartItems");
+    return localData ? JSON.parse(localData) : [];
   });
 
-  // 2. Salva o carrinho no localStorage sempre que 'cartItems' é atualizado
   useEffect(() => {
-    try {
-      localStorage.setItem("cartItems", JSON.stringify(cartItems));
-    } catch (error) {
-      console.error("Erro ao salvar carrinho no localStorage:", error);
-    }
-  }, [cartItems]); // O useEffect é executado sempre que 'cartItems' muda
+    localStorage.setItem("cartItems", JSON.stringify(cartItems));
+  }, [cartItems]);
 
-  const addToCart = useCallback((product) => {
+  const addToCart = (productToAdd) => {
     setCartItems((prevItems) => {
-      const existingItem = prevItems.find((item) => item.id === product.id);
+      const existingItem = prevItems.find(
+        (item) => item.id === productToAdd.id
+      );
       if (existingItem) {
         return prevItems.map((item) =>
-          item.id === product.id
-            ? { ...item, quantity: item.quantity + 1 }
+          item.id === productToAdd.id
+            ? {
+                ...item,
+                quantity: item.quantity + (productToAdd.quantity || 1),
+              }
             : item
         );
-      } else {
-        // Garante que o produto tenha uma quantidade inicial de 1 ao ser adicionado
-        return [...prevItems, { ...product, quantity: 1 }];
       }
+      // AO ADICIONAR, INICIALIZA A OBSERVAÇÃO DO ITEM (VAZIA OU COM VALOR PADRÃO SE HOUVER)
+      return [
+        ...prevItems,
+        {
+          ...productToAdd,
+          quantity: productToAdd.quantity || 1,
+          itemObservation: "", // Novo campo para observação específica do item
+        },
+      ];
     });
-    // Aqui você pode adicionar a lógica para mostrar uma notificação se desejar
-  }, []);
+  };
 
-  const updateQuantity = useCallback((productId, quantity) => {
+  const updateQuantity = (productId, quantity) => {
     setCartItems((prevItems) =>
       prevItems.map((item) =>
         item.id === productId
-          ? { ...item, quantity: parseInt(quantity, 10) }
+          ? { ...item, quantity: Math.max(1, quantity) }
           : item
       )
     );
-  }, []);
+  };
 
-  const removeItem = useCallback((productId) => {
+  // NOVA FUNÇÃO PARA ATUALIZAR A OBSERVAÇÃO DE UM ITEM ESPECÍFICO
+  const updateItemObservation = (productId, observation) => {
+    setCartItems((prevItems) =>
+      prevItems.map((item) =>
+        item.id === productId ? { ...item, itemObservation: observation } : item
+      )
+    );
+  };
+
+  const removeItem = (productId) => {
     setCartItems((prevItems) =>
       prevItems.filter((item) => item.id !== productId)
     );
-  }, []);
+  };
 
-  // Adicionado para limpar o carrinho, útil para um "Finalizar Compra" real
-  const clearCart = useCallback(() => {
-    setCartItems([]);
-  }, []);
-
-  const getTotal = useCallback(() => {
+  const getTotal = () => {
     return cartItems.reduce((total, item) => {
-      // Usa o preço promocional se ele existir e for menor que o preço normal
-      const priceToConsider =
-        item.preco_promocional && item.preco_promocional < item.preco
-          ? item.preco_promocional
-          : item.preco;
-      // Garante que priceToConsider é um número antes da multiplicação
-      const validPrice =
-        typeof priceToConsider === "number" ? priceToConsider : 0;
-      return total + validPrice * item.quantity;
+      const price =
+        item.preco_promocional &&
+        Number(item.preco_promocional) < Number(item.preco)
+          ? Number(item.preco_promocional)
+          : Number(item.preco);
+      return total + price * item.quantity;
     }, 0);
-  }, [cartItems]);
+  };
+
+  const clearCart = () => {
+    setCartItems([]);
+  };
 
   return (
     <CartContext.Provider
@@ -93,6 +91,7 @@ export const CartProvider = ({ children }) => {
         removeItem,
         getTotal,
         clearCart,
+        updateItemObservation, // Expor a nova função
       }}
     >
       {children}
