@@ -144,15 +144,6 @@ function ProductDetails() {
               {produto.nome}
             </h1>
 
-            <div className="flex items-center">
-              {[...Array(5)].map((_, i) => (
-                <FaStar key={i} className="text-amber-400 w-5 h-5" />
-              ))}
-              <span className="ml-2 text-sm text-stone-500">
-                (0 avaliações)
-              </span>
-            </div>
-
             <div className="flex items-baseline space-x-2">
               <span className="text-3xl font-extrabold text-emerald-600">
                 R$ {precoFinal.toFixed(2).replace(".", ",")}

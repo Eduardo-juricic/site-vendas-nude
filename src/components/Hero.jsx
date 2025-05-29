@@ -1,7 +1,11 @@
-import { Link } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom"; // Adicionado
+import { Link as ScrollLink, scroller } from "react-scroll"; // Adicionado scroller e ScrollLink (apesar de não usarmos ScrollLink diretamente no botão, scroller é o principal)
 import { motion } from "framer-motion";
 
-function Hero({ produtoDestaque }) {
+function Hero() {
+  const location = useLocation(); // Adicionado
+  const navigate = useNavigate(); // Adicionado
+
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -47,133 +51,103 @@ function Hero({ produtoDestaque }) {
     tap: { scale: 0.92 },
   };
 
-  if (produtoDestaque && produtoDestaque.id) {
-    const produtoDestaqueTitle =
-      produtoDestaque.nomeHero || "Destaque do Ateliê";
-    const produtoDestaqueTitleWords = produtoDestaqueTitle.split(" ");
+  const atelieTitle = "A Essência do Artesanato";
+  const atelieTitleWords = atelieTitle.split(" ");
+  const atelieDescription =
+    "Peças únicas, criadas com alma e paixão, que levam afeto e originalidade para o seu lar. Descubra a arte que toca o coração.";
+  const buttonText = "Conheça Nossos Produtos";
+  // const buttonLink = "/produtos"; // Não será mais um Link direto
 
-    return (
-      <motion.section
-        // ALTERAÇÃO: min-h-[65vh] para min-h-screen
-        className="bg-gradient-to-br from-emerald-200 via-teal-300 to-cyan-300 py-28 md:py-44 text-center flex flex-col items-center justify-center min-h-screen relative overflow-hidden"
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-      >
-        <div className="container mx-auto relative z-10 px-4">
-          <motion.h2
-            className="text-md md:text-lg font-semibold uppercase tracking-wider text-emerald-700 mb-3"
-            variants={textVariants}
-            initial="hidden"
-            animate="visible"
-            transition={{ delay: 0.2, duration: 0.7, ease: "easeOut" }}
-          >
-            ✨ Promoção Especial ✨
-          </motion.h2>
-          <motion.h1 className="text-4xl md:text-6xl font-serif font-bold mb-5 text-emerald-800 drop-shadow-md">
-            {produtoDestaqueTitleWords.map((word, index) => (
-              <motion.span
-                key={index}
-                custom={index}
-                variants={titleElementVariants}
-                style={{ display: "inline-block", marginRight: "0.2em" }}
-              >
-                {word}
-              </motion.span>
-            ))}
-          </motion.h1>
-          <motion.p
-            className="text-lg md:text-2xl mb-10 max-w-xl mx-auto text-emerald-700"
-            variants={textVariants}
-            initial="hidden"
-            animate="visible"
-            transition={{
-              delay: produtoDestaqueTitleWords.length * 0.15 + 0.3,
-              duration: 0.7,
-              ease: "easeOut",
-            }}
-          >
-            {produtoDestaque.descricaoHero ||
-              "Descubra os detalhes encantadores da nossa peça selecionada."}
-          </motion.p>
-          <Link to={`/produto/${produtoDestaque.id}`}>
-            <motion.button
-              className="bg-white text-emerald-600 hover:bg-emerald-50 font-bold py-4 px-10 rounded-md text-xl shadow-xl"
-              variants={buttonVariants}
-              whileHover="hover"
-              whileTap="tap"
-              initial="hidden"
-              animate="visible"
-              transition={{
-                delay: produtoDestaqueTitleWords.length * 0.15 + 0.6,
-                duration: 0.6,
-                ease: [0.6, -0.05, 0.01, 0.99],
-              }}
+  const heroBackgroundColor =
+    "bg-gradient-to-br from-emerald-200 via-teal-300 to-cyan-300";
+  const subtitleTextColor = "text-emerald-700";
+  const titleTextColor = "text-emerald-800";
+  const paragraphTextColor = "text-emerald-700";
+  const buttonClasses =
+    "bg-white text-emerald-600 hover:bg-emerald-50 font-bold py-4 px-10 rounded-md text-xl shadow-xl cursor-pointer"; // Adicionado cursor-pointer
+  const subtitleText = "✨ Bem-vindo ao Nosso Ateliê ✨";
+
+  const handleScrollToProducts = () => {
+    if (location.pathname === "/") {
+      // Já está na home, apenas rola
+      scroller.scrollTo("produtos-section", {
+        duration: 800,
+        delay: 0,
+        smooth: "easeInOutQuart",
+        offset: -70, // Ajuste conforme a altura do seu header fixo ou outra necessidade de offset
+      });
+    } else {
+      // Navega para a home e, após a navegação, a rolagem será tratada
+      // pelo useEffect em App.jsx (ou similar) que escuta por hash na URL.
+      // Se não houver tal useEffect, pode ser necessário um pequeno delay aqui.
+      navigate("/#produtos-section");
+    }
+  };
+
+  return (
+    <motion.section
+      className={`${heroBackgroundColor} py-28 md:py-44 text-center flex flex-col items-center justify-center min-h-screen relative overflow-hidden`}
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+    >
+      <div className="container mx-auto relative z-10 px-4">
+        <motion.h2
+          className={`text-md md:text-lg font-semibold uppercase tracking-wider ${subtitleTextColor} mb-3`}
+          variants={textVariants}
+          initial="hidden"
+          animate="visible"
+          transition={{ delay: 0.2, duration: 0.7, ease: "easeOut" }}
+        >
+          {subtitleText}
+        </motion.h2>
+        <motion.h1
+          className={`text-4xl md:text-6xl font-serif font-bold mb-5 ${titleTextColor} drop-shadow-md`}
+        >
+          {atelieTitleWords.map((word, index) => (
+            <motion.span
+              key={index}
+              custom={index}
+              variants={titleElementVariants}
+              style={{ display: "inline-block", marginRight: "0.2em" }}
             >
-              Ver Detalhes da Promoção
-            </motion.button>
-          </Link>
-        </div>
-      </motion.section>
-    );
-  } else {
-    const fallbackTitle = "Nosso Cantinho Criativo";
-    const fallbackTitleWords = fallbackTitle.split(" ");
-
-    return (
-      <motion.section
-        // ALTERAÇÃO: min-h-[55vh] para min-h-screen
-        className="bg-gradient-to-br from-rose-100 via-orange-50 to-amber-100 py-28 md:py-44 text-center flex flex-col items-center justify-center min-h-screen overflow-hidden"
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-      >
-        <div className="container mx-auto relative z-10 px-4">
-          <motion.h1 className="text-4xl md:text-6xl font-serif font-bold mb-6 text-stone-700 drop-shadow-sm">
-            {fallbackTitleWords.map((word, index) => (
-              <motion.span
-                key={index}
-                custom={index}
-                variants={titleElementVariants}
-                style={{ display: "inline-block", marginRight: "0.2em" }}
-              >
-                {word}
-              </motion.span>
-            ))}
-          </motion.h1>
-          <motion.p
-            className="text-lg md:text-2xl mb-10 max-w-xl mx-auto text-stone-600"
-            variants={textVariants}
-            initial="hidden"
-            animate="visible"
-            transition={{
-              delay: fallbackTitleWords.length * 0.15 + 0.2,
-              duration: 0.7,
-              ease: "easeOut",
-            }}
-          >
-            Peças únicas, feitas à mão, que carregam afeto e originalidade.
-          </motion.p>
-          <motion.button
-            className="bg-amber-500 text-white hover:bg-amber-600 font-semibold py-3 px-8 rounded-md text-xl shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-            variants={buttonVariants}
-            whileHover="hover"
-            whileTap="tap"
-            disabled
-            initial="hidden"
-            animate="visible"
-            transition={{
-              delay: fallbackTitleWords.length * 0.15 + 0.5,
-              duration: 0.6,
-              ease: [0.6, -0.05, 0.01, 0.99],
-            }}
-          >
-            Promoção Indisponível
-          </motion.button>
-        </div>
-      </motion.section>
-    );
-  }
+              {word}
+            </motion.span>
+          ))}
+        </motion.h1>
+        <motion.p
+          className={`text-lg md:text-2xl mb-10 max-w-xl mx-auto ${paragraphTextColor}`}
+          variants={textVariants}
+          initial="hidden"
+          animate="visible"
+          transition={{
+            delay: atelieTitleWords.length * 0.15 + 0.3,
+            duration: 0.7,
+            ease: "easeOut",
+          }}
+        >
+          {atelieDescription}
+        </motion.p>
+        {/* Alterado de Link para motion.button com onClick */}
+        <motion.button
+          onClick={handleScrollToProducts} // Adicionado onClick
+          className={buttonClasses}
+          variants={buttonVariants}
+          whileHover="hover"
+          whileTap="tap"
+          initial="hidden"
+          animate="visible"
+          transition={{
+            delay: atelieTitleWords.length * 0.15 + 0.6,
+            duration: 0.6,
+            ease: [0.6, -0.05, 0.01, 0.99],
+          }}
+        >
+          {buttonText}
+        </motion.button>
+      </div>
+    </motion.section>
+  );
 }
 
 export default Hero;
