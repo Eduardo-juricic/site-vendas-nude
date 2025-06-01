@@ -1,5 +1,5 @@
 {
-  "name": "functions",
+  "name": "site-vendas-nude-functions",
   "description": "Cloud Functions for Firebase",
   "scripts": {
     "lint": "echo 'Temporarily bypassing lint for functions deploy'",
